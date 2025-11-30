@@ -18,6 +18,9 @@ const std::vector<std::string> colors = { "R", "G", "Y", "B", };
 const std::vector<int> colorCodes = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
 const std::string wildColor = "W";
 const int wildColorCode = MAGENTA_COLOR_CODE;
+const int startingNumberOfCards = 6;
+
+
 
 void SetConsoleColor(int);
 void ResetConsoleColor();
@@ -36,29 +39,52 @@ std::string getCardColor(std::string card);
 void ColorInCard(std::string& cardValue);
 
 
-void PrintVectorElements(std::vector<std::string>& drawPile);
+void PrintVectorCards(std::vector<std::string>& drawPile);
+void AddPlayers(std::vector<std::vector<std::string>>& players, int numberOfPlayers);
+
+std::vector<std::string> drawPile = FillUnoDeck(colors, wildColor);
+
 
 int main()
 {  
     std::random_device rd;
     std::mt19937 gen(rd());
-    int startingNumberOfCards = 6;
 
     
 
-    std::vector<std::string> drawPile = FillUnoDeck(colors, wildColor);
     ShuffleVector(drawPile, gen);
 
     std::vector<std::string> discardPile;
 
 
-    //ColorInCard(drawPile.at(0));
+    std::vector<std::vector<std::string>> players;
+    int numberOfPlayers;
 
-    //PrintVectorElements(drawPile);
+    do {
+        std::cout << "How many players are gonna play the game? (form 2 to 4) ";
+        std::cin >> numberOfPlayers;
+    } while (!(numberOfPlayers > 1 && numberOfPlayers <= 4));
+    AddPlayers(players, numberOfPlayers);
+    //PrintVectorCards(players.at(0));
+    
+    
+
 }
 
+void AddPlayers(std::vector<std::vector<std::string>>& players, int numberOfPlayers) {
+    for (int currentPlayerIndex = 0; currentPlayerIndex < numberOfPlayers; currentPlayerIndex++)
+    {
+        std::vector<std::string> currentPlayer;
+        for (int i = 0; i < startingNumberOfCards; i++)
+        {
+            std::string currentCard = drawCard(drawPile);
+            currentPlayer.push_back(currentCard);
+        }
+        players.push_back(currentPlayer);
 
-void PrintVectorElements(std::vector<std::string>& vector)
+    }
+}
+void PrintVectorCards(std::vector<std::string>& vector)
 {
     for (int i = 0; i < vector.size(); i++)
     {
