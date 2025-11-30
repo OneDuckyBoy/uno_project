@@ -23,6 +23,8 @@ std::vector<std::string> FillUnoDeck(std::vector<std::string> colors, std::strin
 
 void ShuffleVector(std::vector<std::string>& drawPile, std::mt19937& gen);
 
+std::string drawCard(std::vector<std::string>& drawPile);
+
 
 int main()
 {  
@@ -43,6 +45,15 @@ int main()
 
     
 }
+
+
+std::string drawCard(std::vector<std::string>& drawPile) {
+    std::string card = drawPile.back();
+    drawPile.pop_back();
+    return card;
+}
+
+
 
 void ShuffleVector(std::vector<std::string>& drawPile, std::mt19937& gen)
 {
