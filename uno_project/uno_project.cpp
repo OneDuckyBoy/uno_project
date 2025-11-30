@@ -35,6 +35,9 @@ std::string getCardColor(std::string card);
 
 void ColorInCard(std::string& cardValue);
 
+
+void PrintVectorElements(std::vector<std::string>& drawPile);
+
 int main()
 {  
     std::random_device rd;
@@ -51,8 +54,22 @@ int main()
 
     //ColorInCard(drawPile.at(0));
 
-    
+    //PrintVectorElements(drawPile);
 }
+
+
+void PrintVectorElements(std::vector<std::string>& vector)
+{
+    for (int i = 0; i < vector.size(); i++)
+    {
+        std::string cardValue = vector.at(i);
+        ColorInCard(cardValue);
+        std::cout << std::endl;
+
+    }
+}
+
+
 
 void ColorInCard(std::string& cardValue)
 {
