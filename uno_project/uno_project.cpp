@@ -13,6 +13,12 @@ const int GREEN_COLOR_CODE = 92;
 const int YELLOW_COLOR_CODE = 93;
 const int BLUE_COLOR_CODE = 94;
 const int MAGENTA_COLOR_CODE = 95;
+
+const std::vector<std::string> colors = { "R", "G", "Y", "B", };
+const std::vector<int> colorCodes = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
+const std::string wildColor = "W";
+const int wildColorCode = MAGENTA_COLOR_CODE;
+
 void SetConsoleColor(int);
 void ResetConsoleColor();
 void ClearConsole();
@@ -25,6 +31,9 @@ void ShuffleVector(std::vector<std::string>& drawPile, std::mt19937& gen);
 
 std::string drawCard(std::vector<std::string>& drawPile);
 
+std::string getCardColor(std::string card);
+
+void ColorInCard(std::string& cardValue);
 
 int main()
 {  
@@ -32,10 +41,7 @@ int main()
     std::mt19937 gen(rd());
     int startingNumberOfCards = 6;
 
-    std::vector<std::string> colors = { "R", "G", "Y", "B", };
-    std::vector<int> colorsCodes = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
-    std::string wildColor = "W";
-    int wildColorCode = MAGENTA_COLOR_CODE;
+    
 
     std::vector<std::string> drawPile = FillUnoDeck(colors, wildColor);
     ShuffleVector(drawPile, gen);
@@ -43,8 +49,64 @@ int main()
     std::vector<std::string> discardPile;
 
 
+    //ColorInCard(drawPile.at(0));
+
     
 }
+
+void ColorInCard(std::string& cardValue)
+{
+    std::string cardColor = cardValue.size() == 1 ? "W" : getCardColor(cardValue);
+
+    auto it = std::find(colors.begin(), colors.end(), cardColor);
+
+    if (it != colors.end())
+    {
+        int index = it - colors.begin();      // get index
+        int code = colorCodes[index];        // matching code
+
+        PrintTextInColor(cardValue, code);
+    }
+    else if (cardColor == "W") // wild cards
+    {
+        PrintTextInColor(cardValue, MAGENTA_COLOR_CODE);
+    }
+    /*if (!cardColor.compare("R"))
+    {
+        PrintTextInColor(cardValue, RED_COLOR_CODE);
+    }
+    else if (!cardColor.compare("B"))
+    {
+        PrintTextInColor(cardValue, BLUE_COLOR_CODE);
+    }
+    else if (!cardColor.compare("Y"))
+    {
+        PrintTextInColor(cardValue, YELLOW_COLOR_CODE);
+    }
+    else if (!cardColor.compare("G"))
+    {
+        PrintTextInColor(cardValue, GREEN_COLOR_CODE);
+    }
+    else if (!cardColor.compare("W"))
+    {
+        PrintTextInColor(cardValue, MAGENTA_COLOR_CODE);
+    }*/
+
+}
+
+
+
+std::string getCardColor(std::string card) {
+    size_t pos = card.find(' ');
+
+    if (pos != std::string::npos && pos > 0) {
+        char color = card[pos - 1];
+        return std::string(1, color); // return "R", "G", "B", "Y"
+    }
+
+    return "";
+}
+
 
 
 std::string drawCard(std::vector<std::string>& drawPile) {
