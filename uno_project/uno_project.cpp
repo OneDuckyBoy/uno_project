@@ -10,7 +10,11 @@
 #include <vector>
 
 
-
+struct Card
+{
+    char color;
+    char value[];
+};
 
 
 const int RED_COLOR_CODE = 91;
