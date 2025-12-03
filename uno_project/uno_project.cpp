@@ -10,7 +10,7 @@
 #include <vector>
 
 
-struct Card
+struct card
 {
     char color;
     char value[];
