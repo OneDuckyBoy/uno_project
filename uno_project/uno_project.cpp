@@ -35,10 +35,12 @@ struct player
 };
 const int MAX_PLAYERS = 4;
 struct player players[MAX_PLAYERS];
+int numberOfPlayers = 0;
 int currentPlayerId = 0;
-
+int playerOrder = 1;
 void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
 int main();
+void SaveGameInFile();
 void displayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(int numberOfPlayers);
 void shuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
@@ -62,6 +64,8 @@ void colorInCard(struct card currentCard);
 
 bool checkIfPlayerCanPlayCard(struct card currentCard, struct card playerCard);
 bool charEquals(const char a[], const char b[], int size);
+
+bool LoadGameFromFile();
 int main()
 {
     std::random_device rd;
@@ -97,7 +101,6 @@ int main()
     {
         std::cout << "starting new game : D" << std::endl;
 
-        int numberOfPlayers;
 
         do {
             std::cout << "How many players are gonna play the game? (form 2 to 4) ";
@@ -142,7 +145,16 @@ int main()
         }
         else if (userAnswer == currentPlayer.handSize+1)
         {
-            isValidOption = true;
+            std::cout << "Are you sure? if there is older save it will be overwritten."<<std::endl
+                <<"[0] Save game and exit [1] Continue current game: "<<std::endl;
+
+            std::cin >> userAnswer;
+            if (userAnswer==0)
+            {
+                userAnswer = currentPlayer.handSize + 1;
+                isValidOption = true;
+
+            }
         }
         else {
             struct card playerCard = currentPlayer.hand[userAnswer];
@@ -150,40 +162,210 @@ int main()
         }
         } while (!isValidOption);
 
+        if (userAnswer == currentPlayer.handSize + 1)
+        {
+            //save progress and exit game
+
+            SaveGameInFile();
+            
+            return 0;
+
+        }
+        
 
     }
     else if (userAnswer == 1)
     {
-        std::ifstream UnoSaveState(FILENAME);
-        if (!UnoSaveState) {
-            // File does not exist or could not be opened
-            std::cout << "File does not exist or cannot be opened." << std::endl;
-        }
-        else {
-            // Move to the end to check file size
-            UnoSaveState.seekg(0, std::ios::end);
-            if (UnoSaveState.tellg() == 0) {
-                // File is empty
-                std::cout << "File exists but is empty." << std::endl;
-            }
-            else {
-                // File has content
-                std::cout << "File exists and has content." << std::endl;
-                //const int MAX_LINE_LENGTH = 1256; // Adjust as needed
-                //char line[MAX_LINE_LENGTH];
-                //UnoSaveState.seekg(0, std::ios::beg);
-                //while (UnoSaveState.getline(line, MAX_LINE_LENGTH)) {
-                //    std::cout << line << std::endl;
-                //}
-            }
 
-        }
-        UnoSaveState.close();
+        LoadGameFromFile();
+        std::cout << discardDeck[topDiscardDeckId].text;
+        //std::ifstream UnoSaveState(FILENAME);
+        //if (!UnoSaveState) {
+        //    // File does not exist or could not be opened
+        //    std::cout << "File does not exist or cannot be opened." << std::endl;
+        //}
+        //else {
+        //    // Move to the end to check file size
+        //    UnoSaveState.seekg(0, std::ios::end);
+        //    if (UnoSaveState.tellg() == 0) {
+        //        // File is empty
+        //        std::cout << "File exists but is empty." << std::endl;
+        //    }
+        //    else {
+        //        // File has content
+        //        std::cout << "File exists and has content." << std::endl;
+        //        //const int MAX_LINE_LENGTH = 1256; // Adjust as needed
+        //        //char line[MAX_LINE_LENGTH];
+        //        //UnoSaveState.seekg(0, std::ios::beg);
+        //        //while (UnoSaveState.getline(line, MAX_LINE_LENGTH)) {
+        //        //    std::cout << line << std::endl;
+        //        //}
+        //    }
+
+        //}
+        //UnoSaveState.close();
+
+
 
 
     }
 
 
+
+}
+bool LoadGameFromFile()
+{
+    std::ifstream loadFile(FILENAME);
+    if (!loadFile)
+    {
+        std::cout << "Cannot open save file.\n";
+        return false;
+    }
+
+    // Проверка дали файлът е празен
+    loadFile.seekg(0, std::ios::end);
+    if (loadFile.tellg() == 0)
+    {
+        std::cout << "Save file is empty.\n";
+        return false;
+    }
+    loadFile.seekg(0, std::ios::beg);
+
+    // === READ GAME STATE ===
+    loadFile >> numberOfPlayers;
+    loadFile >> currentPlayerId;
+    loadFile >> playerOrder;
+
+    for (int i = 0; i < numberOfPlayers; i++)
+    {
+        loadFile >> players[i].handSize;
+
+        for (int j = 0; j < players[i].handSize; j++)
+        {
+            loadFile >> players[i].hand[j].color;
+            loadFile >> players[i].hand[j].value;
+
+            // Възстановяваме text полето
+            players[i].hand[j].text[0] = players[i].hand[j].color;
+
+            if (players[i].hand[j].value[0] != '\0')
+            {
+                players[i].hand[j].text[1] = ' ';
+                int k = 0;
+                while (players[i].hand[j].value[k] != '\0')
+                {
+                    players[i].hand[j].text[2 + k] =
+                        players[i].hand[j].value[k];
+                    k++;
+                }
+                players[i].hand[j].text[2 + k] = '\0';
+            }
+            else
+            {
+                players[i].hand[j].text[1] = '\0';
+            }
+        }
+    }
+
+    loadFile >> currentDrawDeckId;
+
+    for (int j = currentDrawDeckId; j < MAX_DECK_SIZE; j++)
+    {
+        loadFile >> drawDeck[j].color;
+        loadFile >> drawDeck[j].value;
+
+        drawDeck[j].text[0] = drawDeck[j].color;
+
+        if (drawDeck[j].value[0] != '\0')
+        {
+            drawDeck[j].text[1] = ' ';
+            int k = 0;
+            while (drawDeck[j].value[k] != '\0')
+            {
+                drawDeck[j].text[2 + k] = drawDeck[j].value[k];
+                k++;
+            }
+            drawDeck[j].text[2 + k] = '\0';
+        }
+        else
+        {
+            drawDeck[j].text[1] = '\0';
+        }
+    }
+
+    loadFile >> topDiscardDeckId;
+
+    for (int j = 0; j <= topDiscardDeckId; j++)
+    {
+        loadFile >> discardDeck[j].color;
+        loadFile >> discardDeck[j].value;
+
+        discardDeck[j].text[0] = discardDeck[j].color;
+
+        if (discardDeck[j].value[0] != '\0')
+        {
+            discardDeck[j].text[1] = ' ';
+            int k = 0;
+            while (discardDeck[j].value[k] != '\0')
+            {
+                discardDeck[j].text[2 + k] =
+                    discardDeck[j].value[k];
+                k++;
+            }
+            discardDeck[j].text[2 + k] = '\0';
+        }
+        else
+        {
+            discardDeck[j].text[1] = '\0';
+        }
+    }
+
+    loadFile.close();
+    std::cout << "Game loaded successfully.\n";
+    return true;
+}
+
+void SaveGameInFile()
+{
+
+    std::ofstream saveFile(FILENAME, std::ios::trunc);
+    if (!saveFile) {
+        std::cerr << "Error opening file!" << std::endl;
+        return ;
+    }
+
+    // Write game state
+    saveFile << numberOfPlayers << std::endl;
+    saveFile << currentPlayerId << std::endl;
+    saveFile << playerOrder << std::endl;
+    for (int i = 0; i < numberOfPlayers; i++)
+    {
+        saveFile << players[i].handSize << std::endl;
+        for (int j = 0; j < players[i].handSize; j++)
+        {
+            saveFile << players[i].hand[j].color << std::endl;
+            saveFile << players[i].hand[j].value << std::endl;
+        }
+    }
+    saveFile << currentDrawDeckId << std::endl;//max deck size is constant
+
+    for (int j = currentDrawDeckId; j < MAX_DECK_SIZE; j++)
+    {
+        saveFile << drawDeck[j].color << std::endl;
+        saveFile << drawDeck[j].value << std::endl;
+    }
+    saveFile << topDiscardDeckId << std::endl;
+    for (int j = 0; j <= topDiscardDeckId; j++)
+    {
+        saveFile << discardDeck[j].color << std::endl;
+        saveFile << discardDeck[j].value << std::endl;
+    }
+
+
+
+    // Close file
+    saveFile.close();
+    std::cout << "Game saved successfully.\n";
 
 }
 bool charEquals(const char a[], const char b[], int size) {
