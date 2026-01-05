@@ -73,7 +73,7 @@ int main()
 {
     std::random_device rd;
     unsigned int seed = rd();
-    
+    seed = 2899746807;
     std::mt19937 gen(seed);
     //       597823264      //wild card is top discard card when 2 players (reshuffles deck and chooses new card)
     //gen.seed(8);
@@ -247,7 +247,7 @@ void BuildCardText(card& c)
     c.text[2 + i] = '\0';
 }
 
-bool LoadGameFromFile()
+bool LoadGameFromFile1()
 {
     std::ifstream in(FILENAME);
     if (!in)
@@ -300,7 +300,7 @@ bool LoadGameFromFile()
 }
 
 
-void SaveGameInFile()
+void SaveGameInFile1()
 {
     std::ofstream out(FILENAME, std::ios::trunc);
     if (!out)
@@ -344,7 +344,126 @@ void SaveGameInFile()
     std::cout << "Game saved successfully.\n";
 }
 
+void SaveGameInFile()
+{
+    std::ofstream out(FILENAME, std::ios::trunc);
+    if (!out)
+    {
+        std::cout << "Cannot open save file.\n";
+        return;
+    }
 
+    out << numberOfPlayers << '\n';
+    out << currentPlayerId << '\n';
+    out << playerOrder << '\n';
+
+    // PLAYERS
+    for (int i = 0; i < numberOfPlayers; i++)
+    {
+        out << players[i].handSize << '\n';
+        for (int j = 0; j < players[i].handSize; j++)
+        {
+            out << players[i].hand[j].color << '\n';
+
+            // За Wild карти без value, пиши "-"
+            if (players[i].hand[j].value[0] == '\0')
+                out << "-\n";
+            else
+                out << players[i].hand[j].value << '\n';
+        }
+    }
+
+    // DRAW DECK
+    out << currentDrawDeckId << '\n';
+    for (int i = currentDrawDeckId; i < MAX_DECK_SIZE; i++)
+    {
+        out << drawDeck[i].color << '\n';
+
+        if (drawDeck[i].value[0] == '\0')
+            out << "-\n";
+        else
+            out << drawDeck[i].value << '\n';
+    }
+
+    // DISCARD DECK
+    out << topDiscardDeckId << '\n';
+    for (int i = 0; i <= topDiscardDeckId; i++)
+    {
+        out << discardDeck[i].color << '\n';
+
+        if (discardDeck[i].value[0] == '\0')
+            out << "-\n";
+        else
+            out << discardDeck[i].value << '\n';
+    }
+
+    out.close();
+    std::cout << "Game saved successfully.\n";
+}
+
+bool LoadGameFromFile()
+{
+    std::ifstream in(FILENAME);
+    if (!in)
+    {
+        std::cout << "Save file not found.\n";
+        return false;
+    }
+
+    currentDrawDeckId = 0;
+    topDiscardDeckId = 0;
+
+    in >> numberOfPlayers;
+    in >> currentPlayerId;
+    in >> playerOrder;
+
+    // PLAYERS
+    for (int i = 0; i < numberOfPlayers; i++)
+    {
+        in >> players[i].handSize;
+        for (int j = 0; j < players[i].handSize; j++)
+        {
+            in >> players[i].hand[j].color;
+            in >> players[i].hand[j].value;
+
+            // Ако е "-", направи го '\0'
+            if (players[i].hand[j].value[0] == '-' && players[i].hand[j].value[1] == '\0')
+                players[i].hand[j].value[0] = '\0';
+
+            BuildCardText(players[i].hand[j]);
+        }
+    }
+
+    // DRAW DECK
+    in >> currentDrawDeckId;
+    for (int i = currentDrawDeckId; i < MAX_DECK_SIZE; i++)
+    {
+        in >> drawDeck[i].color;
+        in >> drawDeck[i].value;
+
+        if (drawDeck[i].value[0] == '-' && drawDeck[i].value[1] == '\0')
+            drawDeck[i].value[0] = '\0';
+
+        BuildCardText(drawDeck[i]);
+    }
+
+    // DISCARD DECK
+    in >> topDiscardDeckId;
+    for (int i = 0; i <= topDiscardDeckId; i++)
+    {
+        in >> discardDeck[i].color;
+        in >> discardDeck[i].value;
+
+        if (discardDeck[i].value[0] == '-' && discardDeck[i].value[1] == '\0')
+            discardDeck[i].value[0] = '\0';
+
+        BuildCardText(discardDeck[i]);
+    }
+
+    in.close();
+    std::cout << "Game loaded successfully.\n";
+    return true;
+}
 
 bool charEquals(const char a[], const char b[], int size) {
     for (int i = 0; i < size; i++) {
