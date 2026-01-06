@@ -40,6 +40,9 @@ int currentPlayerId = 0;
 int playerOrder = 1;
 void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
 int main();
+int GameFlow(int& userAnswer, bool& retFlag);
+void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption);
+void StartNewGame(std::mt19937& gen);
 void SaveGameInFile();
 void displayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(int numberOfPlayers);
@@ -62,6 +65,8 @@ const int STARTING_NUMBER_OF_CARDS = 7;
 
 void colorInCard(struct card currentCard);
 
+void colorInTopDiscardCard();
+
 bool checkIfPlayerCanPlayCard(struct card currentCard, struct card playerCard);
 bool charEquals(const char a[], const char b[], int size);
 
@@ -69,11 +74,17 @@ bool charEquals(const char a[], const char b[], int size);
 void BuildCardText(card& c);
 
 bool LoadGameFromFile();
-int main()
+
+char activeWildColor = '\0';
+
+char ChooseColorForWild(int playerId);
+void PlayCard(int cardIndex, player& currentPlayer);
+int main1()
 {
     std::random_device rd;
     unsigned int seed = rd();
-    seed = 2899746807;
+    //seed = 2899746807;// wild in player hand in 2 players
+    seed = 597823264; // wild in the top discard card
     std::mt19937 gen(seed);
     //       597823264      //wild card is top discard card when 2 players (reshuffles deck and chooses new card)
     //gen.seed(8);
@@ -102,28 +113,7 @@ int main()
 
     if (userAnswer == 0)
     {
-        std::cout << "starting new game : D" << std::endl;
-
-
-        do {
-            std::cout << "How many players are gonna play the game? (form 2 to 4) ";
-            std::cin >> numberOfPlayers;
-        } while (!(numberOfPlayers > 1 && numberOfPlayers <= 4));
-
-        fillUnoDeck(drawDeck);
-        shuffleDeck(drawDeck, MAX_DECK_SIZE, gen);
-
-        FillPlayersHands(numberOfPlayers);
-
-        if (drawDeck[currentDrawDeckId].color == wildColor)
-        {
-            std::cout << "WIIIILD!!!" << std::endl;
-            do
-                shuffleDeck(drawDeck + currentDrawDeckId, MAX_DECK_SIZE - currentDrawDeckId, gen);
-            while (drawDeck[currentDrawDeckId].color == wildColor);
-
-        }
-        discardDeck[topDiscardDeckId] = drawDeck[currentDrawDeckId++];
+        StartNewGame(gen);
 
     }
     else if (userAnswer == 1)
@@ -131,58 +121,366 @@ int main()
 
         if (!LoadGameFromFile())
         {
-            std::cout << "Starting new game instead...\n";
+            std::cout << "Starting new game instead...\n\n";
             // тук стартираш нова игра
+            StartNewGame(gen);
         }
         else {
-            std::cout << "loading somewhat successful\n";
+            std::cout << "Loading successful\n";
 
         }
-        //std::ifstream UnoSaveState(FILENAME);
-        //if (!UnoSaveState) {
-        //    // File does not exist or could not be opened
-        //    std::cout << "File does not exist or cannot be opened." << std::endl;
-        //}
-        //else {
-        //    // Move to the end to check file size
-        //    UnoSaveState.seekg(0, std::ios::end);
-        //    if (UnoSaveState.tellg() == 0) {
-        //        // File is empty
-        //        std::cout << "File exists but is empty." << std::endl;
-        //    }
-        //    else {
-        //        // File has content
-        //        std::cout << "File exists and has content." << std::endl;
-        //        //const int MAX_LINE_LENGTH = 1256; // Adjust as needed
-        //        //char line[MAX_LINE_LENGTH];
-        //        //UnoSaveState.seekg(0, std::ios::beg);
-        //        //while (UnoSaveState.getline(line, MAX_LINE_LENGTH)) {
-        //        //    std::cout << line << std::endl;
-        //        //}
-        //    }
-
-        //}
-        //UnoSaveState.close();
-
-
-
-
+        
     }
 
 
-    std::cout << "Current player: " << currentPlayerId << std::endl;
-    std::cout << "Current card: ";
-
     
 
+    
+    bool retFlag;
+    int retVal = GameFlow(userAnswer, retFlag);
+    if (retFlag) return retVal;
+    retVal = GameFlow(userAnswer, retFlag);
+    if (retFlag) return retVal;
+
+    while (true);
+    {
+        retVal = GameFlow(userAnswer, retFlag);
+        if (retFlag) return retVal;
+    }
+
+}
+
+int main()
+{
+    std::random_device rd;
+    unsigned int seed = rd();
+    //seed = 2899746807;// wild in player hand in 2 players
+    //seed = 597823264; // wild in the top discard card
+    std::mt19937 gen(seed);
+
+    std::cout << "Welcome to Uno tm console edition :D" << std::endl
+        << "Do you want to start a new game or continue the game from last time?" << std::endl
+        << "(if no previous game exists new game will start)" << std::endl;
+    int userAnswer;
+    bool validUserAnswer = false;
+    do {
+        std::cout << "[0] start new game    [1] continue last game" << std::endl;
+        std::cin >> userAnswer;
+        if (userAnswer == 0 || userAnswer == 1)
+        {
+            validUserAnswer = true;
+        }
+        else
+        {
+            std::cout << "Invalid answer. Choose from the valid options : )" << std::endl;
+        }
+    } while (validUserAnswer == false);
+
+    if (userAnswer == 0)
+    {
+        StartNewGame(gen);
+    }
+    else if (userAnswer == 1)
+    {
+        if (!LoadGameFromFile())
+        {
+            std::cout << "Starting new game instead...\n\n";
+            StartNewGame(gen);
+        }
+        else {
+            std::cout << "Loading successful\n";
+        }
+    }
+
+    // ГЛАВЕН ИГРАЛЕН ЦИКЪЛ
+    while (true)
+    {
+        bool retFlag;
+        int retVal = GameFlow(userAnswer, retFlag);
+
+        if (retFlag)  // Ако трябва да излезем от играта
+        {
+            return retVal;
+        }
+    }
+}
+void PlayCard1(int cardIndex, player& currentPlayer)
+{
+    // 1. ВЗЕМИ КАРТАТА КОЯТО СЕ ИГРАЕ
+    struct card playedCard = currentPlayer.hand[cardIndex];
+
+    // 2. ДОБАВИ КАРТАТА В DISCARD PILE
+    topDiscardDeckId++;
+    discardDeck[topDiscardDeckId] = playedCard;
+
+    // 3. ПРЕМАХНИ КАРТАТА ОТ РЪКАТА (премести останалите карти наляво)
+    for (int i = cardIndex; i < currentPlayer.handSize - 1; i++)
+    {
+        currentPlayer.hand[i] = currentPlayer.hand[i + 1];
+    }
+    currentPlayer.handSize--;
+
+    // 4. ЗАПАЗИ ПРОМЕНИТЕ В МАСИВА players
+    players[currentPlayerId] = currentPlayer;
+
+    // 5. АКО КАРТАТА Е WILD, ИЗБЕРИ ЦВЯТ
+    if (playedCard.color == wildColor)
+    {
+        std::cout << "You played a Wild card!\n";
+        activeWildColor = ChooseColorForWild(currentPlayerId);
+    }
+    else
+    {
+        // Ако не е Wild, изчисти активния цвят
+        activeWildColor = '\0';
+    }
+
+    // 6. ПРОВЕРИ ДАЛИ ИГРАЧЪТ Е СПЕЧЕЛИЛ
+    if (currentPlayer.handSize == 0)
+    {
+        ClearConsole();
+        std::cout << "====================================\n";
+        std::cout << "   PLAYER " << currentPlayerId << " WINS!\n";
+        std::cout << "   CONGRATULATIONS!\n";
+        std::cout << "====================================\n";
+        exit(0);  // Край на играта
+    }
+
+    // 7. ОБРАБОТИ СПЕЦИАЛНИ КАРТИ (TODO за после)
+    // Skip, Reverse, +2, +4
+
+    // 8. ПРЕМИНИ КЪМ СЛЕДВАЩИЯ ИГРАЧ
+    currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+}
+
+
+void PlayCard(int cardIndex, player& currentPlayer)
+{
+    // 1. ВЗЕМИ КАРТАТА
+    struct card playedCard = currentPlayer.hand[cardIndex];
+
+    // 2. ДОБАВИ В DISCARD PILE
+    topDiscardDeckId++;
+    discardDeck[topDiscardDeckId] = playedCard;
+
+    // 3. ПРЕМАХНИ ОТ РЪКАТА
+    for (int i = cardIndex; i < currentPlayer.handSize - 1; i++)
+    {
+        currentPlayer.hand[i] = currentPlayer.hand[i + 1];
+    }
+    currentPlayer.handSize--;
+
+    // 4. АКО Е WILD, ИЗБЕРИ ЦВЯТ
+    if (playedCard.color == wildColor)
+    {
+        std::cout << "You played a Wild card!\n";
+        activeWildColor = ChooseColorForWild(currentPlayerId);
+    }
+    else
+    {
+        activeWildColor = '\0';
+    }
+
+    // 5. ПРОВЕРИ ЗА ПОБЕДИТЕЛ
+    if (currentPlayer.handSize == 0)
+    {
+        ClearConsole();
+        std::cout << "====================================\n";
+        std::cout << "   PLAYER " << currentPlayerId << " WINS!\n";
+        std::cout << "   CONGRATULATIONS!\n";
+        std::cout << "====================================\n";
+        std::cout << "\nPress Enter to exit...";
+        std::cin.ignore();
+        std::cin.get();
+        exit(0);
+    }
+
+    // 6. ОБРАБОТИ СПЕЦИАЛНИ КАРТИ
+    if (charEquals(playedCard.value, "Skip", 5))
+    {
+        std::cout << "\n>>> SKIP! Player " << ((currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers) << " is skipped! <<<\n\n";
+        // Премини към следващия играч ДВА ПЪТИ (прескачаш един)
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        return;  // ВАЖНО: излез от функцията, защото вече си преминал
+    }
+    else if (charEquals(playedCard.value, "Reverse", 8))
+    {
+        std::cout << "\n>>> REVERSE! Direction changed! <<<\n\n";
+        playerOrder *= -1;  // Обърни посоката (-1 става 1, 1 става -1)
+
+        // В игра с 2 играча, Reverse работи като Skip
+        if (numberOfPlayers == 2)
+        {
+            std::cout << ">>> (In 2-player game, Reverse acts as Skip) <<<\n\n";
+            currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+            currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+            return;
+        }
+    }
+    else if (charEquals(playedCard.value, "+2", 3))
+    {
+        std::cout << "\n>>> DRAW +2! <<<\n";
+        // Следващият играч тегли 2 карти
+        int nextPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        std::cout << "Player " << nextPlayerId << " draws 2 cards and skips their turn!\n\n";
+
+        // Провери дали има достатъчно карти в дека
+        if (currentDrawDeckId + 2 > MAX_DECK_SIZE)
+        {
+            std::cout << "Not enough cards in deck! Reshuffling discard pile...\n";
+            // TODO: Имплементирай reshuffle логика
+        }
+
+        // Тегли 2 карти
+        players[nextPlayerId].hand[players[nextPlayerId].handSize++] = drawDeck[currentDrawDeckId++];
+        players[nextPlayerId].hand[players[nextPlayerId].handSize++] = drawDeck[currentDrawDeckId++];
+
+        // Прескочи следващия играч
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        return;
+    }
+    else if (charEquals(playedCard.value, "+4", 3))
+    {
+        std::cout << "\n>>> WILD +4! <<<\n";
+        // Следващият играч тегли 4 карти
+        int nextPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        std::cout << "Player " << nextPlayerId << " draws 4 cards and skips their turn!\n\n";
+
+        // Провери дали има достатъчно карти в дека
+        if (currentDrawDeckId + 4 > MAX_DECK_SIZE)
+        {
+            std::cout << "Not enough cards in deck! Reshuffling discard pile...\n";
+            // TODO: Имплементирай reshuffle логика
+        }
+
+        // Тегли 4 карти
+        for (int i = 0; i < 4; i++)
+        {
+            players[nextPlayerId].hand[players[nextPlayerId].handSize++] = drawDeck[currentDrawDeckId++];
+        }
+
+        // Прескочи следващия играч
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+        return;
+    }
+
+    // 7. ОБИКНОВЕНА КАРТА - ПРЕМИНИ КЪМ СЛЕДВАЩ ИГРАЧ
+    currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+}
+
+
+int GameFlow(int& userAnswer, bool& retFlag)
+{
+    retFlag = false;  // По подразбиране не излизаме
+
     struct card currentCard = discardDeck[topDiscardDeckId];
-    colorInCard(currentCard);
-    std::cout << std::endl << "Your hand: " << std::endl;
-    struct player currentPlayer = players[currentPlayerId];
     bool isValidOption = false;
+    ClearConsole();
+
     do {
         do
         {
+            std::cout << "Current player: " << currentPlayerId << std::endl;
+            std::cout << "Current card: ";
+            colorInTopDiscardCard();
+            std::cout << std::endl << "Your hand: " << std::endl;
+
+            displayCurrentPlayerHand(players[currentPlayerId]);
+            std::cout << "[" << players[currentPlayerId].handSize << "] Draw card" << std::endl;
+            std::cout << "[" << players[currentPlayerId].handSize + 1 << "] Save game and exit" << std::endl;
+            std::cout << "What do you want to do?" << std::endl;
+            std::cin >> userAnswer;
+        } while (!(userAnswer >= 0 && userAnswer <= players[currentPlayerId].handSize + 1));
+
+        if (userAnswer == players[currentPlayerId].handSize)
+        {
+            isValidOption = true;
+        }
+        else if (userAnswer == players[currentPlayerId].handSize + 1)
+        {
+            SaveGameConsoleText(userAnswer, players[currentPlayerId], isValidOption);
+        }
+        else {
+            struct card playerCard = players[currentPlayerId].hand[userAnswer];
+            isValidOption = checkIfPlayerCanPlayCard(currentCard, playerCard);
+        }
+
+        if (!isValidOption && userAnswer < players[currentPlayerId].handSize)
+        {
+            ClearConsole();
+            std::cout << "Invalid choice - you cannot play this card!\n\n";
+        }
+
+    } while (!isValidOption);
+
+    // ОБРАБОТИ ИЗБОРА
+    if (userAnswer == players[currentPlayerId].handSize)
+    {
+        // Draw card
+        std::cout << "Drawing a card...\n";
+
+        // Провери дали има карти в дека
+        if (currentDrawDeckId >= MAX_DECK_SIZE)
+        {
+            std::cout << "No more cards in deck!\n";
+            // TODO: Reshuffle логика
+        }
+        else
+        {
+            players[currentPlayerId].hand[players[currentPlayerId].handSize] = drawDeck[currentDrawDeckId++];
+            players[currentPlayerId].handSize++;
+            std::cout << "You drew: ";
+            colorInCard(players[currentPlayerId].hand[players[currentPlayerId].handSize - 1]);
+            std::cout << "\n\n";
+        }
+
+        // След теглене, играчът пропуска хода си
+        std::cout << "Press Enter to continue...";
+        std::cin.ignore();
+        std::cin.get();
+
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+    }
+    else if (userAnswer == players[currentPlayerId].handSize + 1)
+    {
+        // Save and exit
+        SaveGameInFile();
+        retFlag = true;  // ВАЖНО: Сигнализираме че трябва да излезем
+        return 0;
+    }
+    else
+    {
+        // ИГРАЙ КАРТАТА
+        PlayCard(userAnswer, players[currentPlayerId]);
+
+        std::cout << "Press Enter to continue...";
+        std::cin.ignore();
+        std::cin.get();
+    }
+
+    return 0;
+}
+
+int GameFlow1(int& userAnswer, bool& retFlag)
+{
+    retFlag = true;
+
+    struct card currentCard = discardDeck[topDiscardDeckId];
+    struct player &currentPlayer = players[currentPlayerId];
+    bool isValidOption = false;
+    ClearConsole();
+
+    do {
+        do
+        {
+            std::cout << "Current player: " << currentPlayerId << std::endl;
+            std::cout << "Current card: ";
+            colorInTopDiscardCard();
+            std::cout << std::endl << "Your hand: " << std::endl;
+            currentPlayer = players[currentPlayerId];
             displayCurrentPlayerHand(currentPlayer);
             std::cout << "[" << currentPlayer.handSize << "] Draw card" << std::endl;
             std::cout << "[" << currentPlayer.handSize + 1 << "] Save game and exit" << std::endl;
@@ -195,24 +493,39 @@ int main()
         }
         else if (userAnswer == currentPlayer.handSize + 1)
         {
-            std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
-                << "[0] Save game and exit [1] Continue current game: " << std::endl;
-
-            std::cin >> userAnswer;
-            if (userAnswer == 0)
-            {
-                userAnswer = currentPlayer.handSize + 1;
-                isValidOption = true;
-
-            }
+            //save game console text
+            SaveGameConsoleText(userAnswer, currentPlayer, isValidOption);
         }
         else {
             struct card playerCard = currentPlayer.hand[userAnswer];
             isValidOption = checkIfPlayerCanPlayCard(currentCard, playerCard);
         }
-    } while (!isValidOption);
 
-    if (userAnswer == currentPlayer.handSize + 1)
+        ClearConsole();
+
+        if (!isValidOption)
+        {
+
+            std::cout << "Invalid choice - please choose again \n";
+        }
+
+    } while (!isValidOption);
+    std::cout << "it is valid\n\n";
+    if (userAnswer == currentPlayer.handSize)
+    {
+        //draw card
+
+        std::cout << "Drawing a card...\n";
+        currentPlayer.hand[currentPlayer.handSize] = drawDeck[currentDrawDeckId++];
+        currentPlayer.handSize++;
+        players[currentPlayerId] = currentPlayer;
+
+        // След теглене на карта, играчът пропуска хода
+        currentPlayerId = (currentPlayerId + playerOrder + numberOfPlayers) % numberOfPlayers;
+
+        //TODO to see if it works properly
+    }
+    else if (userAnswer == currentPlayer.handSize + 1)
     {
         //save progress and exit game
 
@@ -221,10 +534,104 @@ int main()
         return 0;
 
     }
+    else if (currentPlayer.hand[userAnswer].color == wildColor)
+    {
+        //is wild
+        std::cout << "is wild card\n";
+        //activeWildColor = ChooseColorForWild(currentPlayerId);
+        PlayCard(userAnswer, currentPlayer);
+    }
+    else
+    {
+        std::cout << "isn't wild card\n";
+        PlayCard(userAnswer, currentPlayer);
+        // isn't wild
+    }
 
-
-
+    currentPlayerId = (currentPlayerId+ playerOrder)%numberOfPlayers;
+    currentPlayer = players[currentPlayerId];
+    retFlag = false;
+    return {};
 }
+
+void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption)
+{
+    std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
+        << "[0] Save game and exit [1] Continue current game: " << std::endl;
+
+    std::cin >> userAnswer;
+    if (userAnswer == 0)
+    {
+        userAnswer = currentPlayer.handSize + 1;
+        isValidOption = true;
+
+    }
+}
+
+void StartNewGame(std::mt19937& gen)
+{
+    std::cout << "starting new game : D" << std::endl;
+
+
+    do {
+        std::cout << "How many players are gonna play the game? (form 2 to 4) ";
+        std::cin >> numberOfPlayers;
+    } while (!(numberOfPlayers > 1 && numberOfPlayers <= 4));
+
+    fillUnoDeck(drawDeck);
+    shuffleDeck(drawDeck, MAX_DECK_SIZE, gen);
+
+    FillPlayersHands(numberOfPlayers);
+
+    if (drawDeck[currentDrawDeckId].color == wildColor)
+    {
+        std::cout << "WIIIILD!!!" << std::endl;
+
+        std::cout << "The starting card is Wild!" << std::endl;
+        activeWildColor = ChooseColorForWild(currentPlayerId);
+
+
+    }
+    else
+    {
+        // Ако не е Wild, изчисти активния цвят
+        activeWildColor = '\0';
+    }
+    discardDeck[topDiscardDeckId] = drawDeck[currentDrawDeckId++];
+}
+
+
+
+
+char ChooseColorForWild(int playerId)
+{
+    int colorChoice = -1;
+
+
+    do {
+        std::cout << "Player " << playerId << ", choose a color for the Wild card:" << std::endl;
+        std::cout << "[0] ";
+        PrintTextInColor("Red", RED_COLOR_CODE);
+        std::cout << " [1] ";
+        PrintTextInColor("Green", GREEN_COLOR_CODE);
+        std::cout << " [2] ";
+        PrintTextInColor("Yellow", YELLOW_COLOR_CODE);
+        std::cout << " [3] ";
+        PrintTextInColor("Blue", BLUE_COLOR_CODE);
+        std::cout << std::endl;
+        std::cout << "Your choice: ";
+        std::cin >> colorChoice;
+        if (colorChoice < 0 || colorChoice > 3)
+        {
+            ClearConsole();
+            std::cout << "invalid choice, please choose again: \n \n";
+            
+        }
+    } while (colorChoice < 0 || colorChoice > 3);
+
+    return colors[colorChoice];  // Връща 'R', 'G', 'Y', или 'B'
+}
+
 
 
 void BuildCardText(card& c)
@@ -247,103 +654,6 @@ void BuildCardText(card& c)
     c.text[2 + i] = '\0';
 }
 
-bool LoadGameFromFile1()
-{
-    std::ifstream in(FILENAME);
-    if (!in)
-    {
-        std::cout << "Save file not found.\n";
-        return false;
-    }
-
-    // RESET
-    currentDrawDeckId = 0;
-    topDiscardDeckId = 0;
-
-    in >> numberOfPlayers;
-    in >> currentPlayerId;
-    in >> playerOrder;
-
-    // PLAYERS
-    for (int i = 0; i < numberOfPlayers; i++)
-    {
-        in >> players[i].handSize;
-        for (int j = 0; j < players[i].handSize; j++)
-        {
-            in >> players[i].hand[j].color;
-            in >> players[i].hand[j].value;
-            BuildCardText(players[i].hand[j]);
-        }
-    }
-
-    // DRAW DECK
-    in >> currentDrawDeckId;
-    for (int i = currentDrawDeckId; i < MAX_DECK_SIZE; i++)
-    {
-        in >> drawDeck[i].color;
-        in >> drawDeck[i].value;
-        BuildCardText(drawDeck[i]);
-    }
-
-    // DISCARD DECK ← ТУК БЕШЕ ПРОБЛЕМЪТ
-    in >> topDiscardDeckId;
-    for (int i = 0; i <= topDiscardDeckId; i++)
-    {
-        in >> discardDeck[i].color;
-        in >> discardDeck[i].value;
-        BuildCardText(discardDeck[i]);
-    }
-
-    in.close();
-    std::cout << "Game loaded successfully.\n";
-    return true;
-}
-
-
-void SaveGameInFile1()
-{
-    std::ofstream out(FILENAME, std::ios::trunc);
-    if (!out)
-    {
-        std::cout << "Cannot open save file.\n";
-        return;
-    }
-
-    out << numberOfPlayers << '\n';
-    out << currentPlayerId << '\n';
-    out << playerOrder << '\n';
-
-    // PLAYERS
-    for (int i = 0; i < numberOfPlayers; i++)
-    {
-        out << players[i].handSize << '\n';
-        for (int j = 0; j < players[i].handSize; j++)
-        {
-            out << players[i].hand[j].color << '\n';
-            out << players[i].hand[j].value << '\n';
-        }
-    }
-
-    // DRAW DECK
-    out << currentDrawDeckId << '\n';
-    for (int i = currentDrawDeckId; i < MAX_DECK_SIZE; i++)
-    {
-        out << drawDeck[i].color << '\n';
-        out << drawDeck[i].value << '\n';
-    }
-
-    // DISCARD DECK
-    out << topDiscardDeckId << '\n';   // ← ИНДЕКС
-    for (int i = 0; i <= topDiscardDeckId; i++)
-    {
-        out << discardDeck[i].color << '\n';
-        out << discardDeck[i].value << '\n';
-    }
-
-    out.close();
-    std::cout << "Game saved successfully.\n";
-}
-
 void SaveGameInFile()
 {
     std::ofstream out(FILENAME, std::ios::trunc);
@@ -356,6 +666,11 @@ void SaveGameInFile()
     out << numberOfPlayers << '\n';
     out << currentPlayerId << '\n';
     out << playerOrder << '\n';
+
+    if (activeWildColor == '\0')
+        out << "-\n";
+    else
+        out << activeWildColor << '\n';
 
     // PLAYERS
     for (int i = 0; i < numberOfPlayers; i++)
@@ -417,6 +732,12 @@ bool LoadGameFromFile()
     in >> currentPlayerId;
     in >> playerOrder;
 
+    char tempColor;
+    in >> tempColor;
+    if (tempColor == '-')
+        activeWildColor = '\0';
+    else
+        activeWildColor = tempColor;
     // PLAYERS
     for (int i = 0; i < numberOfPlayers; i++)
     {
@@ -478,20 +799,29 @@ bool charEquals(const char a[], const char b[], int size) {
     return true;
 }
 bool checkIfPlayerCanPlayCard(struct card currentCard, struct card playerCard) {
-    if (playerCard.color==wildColor)
+    if (playerCard.color == wildColor)
     {
         return true;
     }
-    if (currentCard.color == playerCard.color)
-    {
-        return true;
-    }
-    if (charEquals(currentCard.value, playerCard.value,8))
-    {
-        return true;
-    }return false;
-}
 
+    // Ако текущата карта е Wild с избран цвят, използвай активния цвят
+    char effectiveColor = currentCard.color;
+    if (currentCard.color == wildColor && activeWildColor != '\0') {
+        effectiveColor = activeWildColor;
+    }
+
+    if (effectiveColor == playerCard.color)
+    {
+        return true;
+    }
+
+    if (charEquals(currentCard.value, playerCard.value, 8))
+    {
+        return true;
+    }
+
+    return false;
+}
 void displayCurrentPlayerHand(player& currentPlayer)
 {
     for (int i = 0; i < currentPlayer.handSize; i++)
@@ -502,9 +832,8 @@ void displayCurrentPlayerHand(player& currentPlayer)
     }
 }
 void colorInCard(struct card currentCard) {
-
     char color = currentCard.color;
-    
+
     for (int i = 0; i < COLORS_SIZE; i++)
     {
         if (color == colors[i])
@@ -518,6 +847,30 @@ void colorInCard(struct card currentCard) {
         PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
     }
 }
+
+void colorInTopDiscardCard() {
+    struct card currentCard = discardDeck[topDiscardDeckId];
+    char displayColor = currentCard.color;
+
+    // Ако топ картата е Wild и има избран цвят, покажи го
+    if (currentCard.color == wildColor && activeWildColor != '\0') {
+        displayColor = activeWildColor;
+    }
+
+    for (int i = 0; i < COLORS_SIZE; i++)
+    {
+        if (displayColor == colors[i])
+        {
+            PrintTextInColor(currentCard.text, colorCodes[i]);
+            return;
+        }
+    }
+    if (displayColor == wildColor)
+    {
+        PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
+    }
+}
+
 
 void FillPlayersHands(int numberOfPlayers)
 {
