@@ -10,52 +10,45 @@ const char FILENAME[] = "UnoSaveState.txt";
 const int MAX_VALUE_LENGTH = 10;
 const int MAX_TEXT_LENGTH = 20;
 const int MAX_CHAR_ARRAY_SIZE = 1000;
-struct card
-{
-    char color;
-    char value[MAX_VALUE_LENGTH];
-    char text[MAX_TEXT_LENGTH];
-};
+const int ZERO_NUMBER_CARD = 0;
+const int LAST_NUMBER_CARD = 9;
+const int MAX_PLAYERS = 4;
 const int RED_COLOR_CODE = 91;
 const int GREEN_COLOR_CODE = 92;
 const int YELLOW_COLOR_CODE = 93;
 const int BLUE_COLOR_CODE = 94;
 const int MAGENTA_COLOR_CODE = 95;
 const int MAX_DECK_SIZE = 108;
-struct card drawDeck[MAX_DECK_SIZE];
-int currentDrawDeckId = 0;
-struct card discardDeck[MAX_DECK_SIZE];
-int topDiscardDeckId = 0;
-const int STARTING_NUMBER_OF_CARDS = 7;
-
-const int ZERO_NUMBER_CARD = 0;
-const int LAST_NUMBER_CARD = 9;
-struct player
-{
-    struct card hand[MAX_DECK_SIZE] = {};
-    int handSize = STARTING_NUMBER_OF_CARDS;
-};
-const int MAX_PLAYERS = 4;
-struct player players[MAX_PLAYERS];
-int numberOfPlayers = 0;
-int currentPlayerId = 0;
-int playerOrder = 1;
 const char colors[] = { 'R', 'G', 'Y', 'B', };
 const int COLORS_SIZE = 4;
 const int colorCodes[] = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
 const char wildColor = 'W';
 const int wildColorCode = MAGENTA_COLOR_CODE;
 const char UNO_STR[] = "uno";
-char activeWildColor = '\0';
-
 const int SKIP_STRING_SIZE = 5;
 const int REVERSE_STRING_SIZE = 8;
 const int PLUS_2_STRING_SIZE = 3;
 const int PLUS_4_STRING_SIZE = 3;
+const int STARTING_NUMBER_OF_CARDS = 7;
 
+struct card
+{
+    char color;
+    char value[MAX_VALUE_LENGTH];
+    char text[MAX_TEXT_LENGTH];
+};
+struct player
+{
+    struct card hand[MAX_DECK_SIZE] = {};
+    int handSize = STARTING_NUMBER_OF_CARDS;
+};
+
+
+
+
+int main();
 
 void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
-int main();
 int GameFlow(int& userAnswer, bool& retFlag, std::mt19937& gen);
 void ChooseActionToPlay(int& userAnswer, const card& currentCard);
 void playDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen);
@@ -68,61 +61,55 @@ void SaveGameInFile();
 void displayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(int numberOfPlayers);
 void shuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
-
 void ClearConsole();
-
 void ResetConsoleColor();
-
 void SetConsoleColor(int textColor);
-
 void PrintTextInColor(const char text[], int color);
-
-
 void colorInCard(struct card currentCard);
-
 void colorInTopDiscardCard();
-
 bool checkIfPlayerCanPlayCard(struct card currentCard, struct card playerCard);
-
-
 void BuildCardText(card& c);
-
 bool LoadGameFromFile();
-
-
 char ChooseColorForWild(int playerId);
 void playCard(int cardIndex, player& currentPlayer, std::mt19937& gen);
-
 void Draw4CardAction(std::mt19937& gen);
-
 void Draw2CardAction(std::mt19937& gen);
-
 void ReverseCardAction();
-
 void SkipCardAction();
-
 void checkIfPlayerIsWinner(player& currentPlayer);
-
 void ReshuffleDiscardPile(std::mt19937& gen);
-
-
-
-
 bool charEquals(const char a[], const char b[], int size);
-
 char toLower(char c);
 bool equalsIgnoreCase(const char* a, const char* b);
-
 bool readIntFromConsole(int& outValue);
-
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
-
-
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen);
+struct card discardDeck[MAX_DECK_SIZE];
+struct card drawDeck[MAX_DECK_SIZE];
+struct player players[MAX_PLAYERS];
+char activeWildColor = '\0';
+int currentDrawDeckId = 0;
+int topDiscardDeckId = 0;
+int numberOfPlayers = 0;
+int currentPlayerId = 0;
+int playerOrder = 1;
 
-
+const struct savestate {
+    struct card discardDeck[MAX_DECK_SIZE];
+    struct card drawDeck[MAX_DECK_SIZE];
+    struct player players[MAX_PLAYERS];
+    char activeWildColor = '\0';
+    int currentDrawDeckId = 0;
+    int topDiscardDeckId = 0;
+    int numberOfPlayers = 0;
+    int currentPlayerId = 0;
+    int playerOrder = 1;
+};
 int main()
 {
+
+    savestate UnoSavestate;
+
 
     
 
