@@ -23,10 +23,12 @@ struct card drawDeck[MAX_DECK_SIZE];
 int currentDrawDeckId = 0;
 struct card discardDeck[MAX_DECK_SIZE];
 int topDiscardDeckId = 0;
+const int STARTING_NUMBER_OF_CARDS = 7;
+
 struct player
 {
     struct card hand[MAX_DECK_SIZE] = {};
-    int handSize = 7;
+    int handSize = STARTING_NUMBER_OF_CARDS;
 };
 const int MAX_PLAYERS = 4;
 struct player players[MAX_PLAYERS];
@@ -38,9 +40,10 @@ const int COLORS_SIZE = 4;
 const int colorCodes[] = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
 const char wildColor = 'W';
 const int wildColorCode = MAGENTA_COLOR_CODE;
-const int STARTING_NUMBER_OF_CARDS = 7;
 const char UNO_STR[] = "uno";
 char activeWildColor = '\0';
+
+
 
 
 void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
@@ -88,6 +91,7 @@ bool charEquals(const char a[], const char b[], int size);
 char toLower(char c);
 bool equalsIgnoreCase(const char* a, const char* b);
 
+bool readIntFromConsole(int& outValue);
 
 int main()
 {
@@ -98,7 +102,7 @@ int main()
     std::random_device rd;
     unsigned int seed = rd();
     //seed = 2899746807;// wild in player hand in 2 players
-    //seed = 597823264; // wild in the top discard card
+    seed = 597823264; // wild in the top discard card
     std::mt19937 gen(seed);
 
     std::cout << "Welcome to Uno tm console edition :D" << std::endl
@@ -110,11 +114,11 @@ int main()
     do {
         std::cout << "[0] start new game    [1] continue last game" << std::endl;
         std::cin >> tempAnsw;
-        if (tempAnsw[0] == '0' )
+        if (tempAnsw[0] == '0' && tempAnsw[1] == '\0')
         {
             userAnswer = 0;
             validUserAnswer = true;
-        }else if (tempAnsw[0] == '1')
+        }else if (tempAnsw[0] == '1' && tempAnsw[1] == '\0')
         {
             userAnswer = 1;
 
@@ -152,25 +156,31 @@ int main()
         {
             return retVal;
         }
+
+        ClearConsole();
+        std::cout << "give pc to next player: player "<<currentPlayerId<<std::endl;
+        std::cout << "and press enter...";
+        //std::cin.ignore();
+        std::cin.get();
     }
 }
 
 void ReshuffleDiscardPile(std::mt19937& gen)
 {
-    // Провери дали има карти за разбъркване (повече от само топ картата)
+
     if (topDiscardDeckId == 0)
     {
         std::cout << "\n>>> Cannot reshuffle - only top card in discard pile. <<<\n";
         std::cout << ">>> Continuing without reshuffling... <<<\n\n";
-        return;  // Просто излез, не спирай играта
+        return;  
     }
 
     std::cout << "\n>>> Reshuffling discard pile into draw deck! <<<\n\n";
 
-    // Запази топ картата
+  
     struct card topCard = discardDeck[topDiscardDeckId];
 
-    // Копирай всички карти ОСВЕН топ картата обратно в draw deck
+    
     int cardsToShuffle = topDiscardDeckId;
 
     for (int i = 0; i < cardsToShuffle; i++)
@@ -178,10 +188,8 @@ void ReshuffleDiscardPile(std::mt19937& gen)
         drawDeck[currentDrawDeckId + i] = discardDeck[i];
     }
 
-    // Разбъркай картите в draw deck
     shuffleDeck(drawDeck + currentDrawDeckId, cardsToShuffle, gen);
 
-    // Нулирай discard pile, остави само топ картата
     discardDeck[0] = topCard;
     topDiscardDeckId = 0;
 
@@ -373,6 +381,7 @@ int GameFlow(int& userAnswer, bool& retFlag, std::mt19937& gen)
     do {
         do
         {
+
             std::cout << "Current player: " << currentPlayerId << std::endl;
             std::cout << "Current card: ";
             colorInTopDiscardCard();
@@ -382,8 +391,34 @@ int GameFlow(int& userAnswer, bool& retFlag, std::mt19937& gen)
             std::cout << "[" << players[currentPlayerId].handSize << "] Draw card" << std::endl;
             std::cout << "[" << players[currentPlayerId].handSize + 1 << "] Save game and exit" << std::endl;
             std::cout << "What do you want to do?" << std::endl;
-            std::cin >> userAnswer;
-        } while (!(userAnswer >= 0 && userAnswer <= players[currentPlayerId].handSize + 1));
+            
+
+            if (!readIntFromConsole(userAnswer))
+            {
+                ClearConsole();
+
+                userAnswer = -1;
+                std::cout << "Invalid input! Please enter a number." << std::endl;
+                std::cin.clear();
+                std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                continue;  // Започни отначало
+            }
+
+            // Проверка за диапазон
+            if (userAnswer < 0 || userAnswer > players[currentPlayerId].handSize + 1)
+            {
+                ClearConsole();
+
+                std::cout << "Invalid choice! Please choose between 0 and "
+                    << players[currentPlayerId].handSize + 1 << std::endl;
+                continue;  // Започни отначало
+            }
+
+            // Ако достигнем тук, инпутът е валиден
+            break;
+
+
+        } while (true);
 
         if (userAnswer == players[currentPlayerId].handSize)
         {
@@ -447,7 +482,7 @@ int GameFlow(int& userAnswer, bool& retFlag, std::mt19937& gen)
         }
 
         // След теглене, играчът пропуска хода си
-        std::cout << "Press Enter to continue... uno 1";
+        std::cout << "Press Enter to continue...";
         std::cin.ignore();
         std::cin.get();
 
@@ -489,7 +524,13 @@ int GameFlow(int& userAnswer, bool& retFlag, std::mt19937& gen)
             {
                 std::cout << "You Forgot to say Uno! Draw 1 card as penalty.\n";
                 DrawCard(currPlayerIdBeforePlay,gen); // твоя функция за теглене
+
+
+                std::cout << "Press Enter to continue...";
+                //std::cin.ignore();
+                std::cin.get();
             }
+            
         }
         else
         {
@@ -530,8 +571,7 @@ void DrawCard(int userId,std::mt19937& gen)
     // Провери дали има карти в дека
     if (currentDrawDeckId >= MAX_DECK_SIZE - 1)
     {
-        //std::cout << "No more cards in deck!\n";
-        // TODO: Reshuffle логика
+        
         ReshuffleDiscardPile(gen);
     }
     else
@@ -547,27 +587,69 @@ void DrawCard(int userId,std::mt19937& gen)
 
 void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption)
 {
-    std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
-        << "[0] Save game and exit [1] Continue current game: " << std::endl;
+    
 
-    std::cin >> userAnswer;
+
+    bool validInput = false;
+    do {
+        std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
+        << "[0] Save game and exit [1] Continue current game: " << std::endl;
+        if (!readIntFromConsole(userAnswer))
+        {
+            ClearConsole();
+
+            std::cout << "Invalid input, please enter a number.\n\n";
+            continue;
+        }
+
+        if (userAnswer !=0 && userAnswer !=1)
+        {
+            ClearConsole();
+
+            std::cout << "Invalid choice, please choose again.\n\n";
+            continue;
+        }
+
+        validInput = true;
+
+    } while (!validInput);
+
+
     if (userAnswer == 0)
     {
         userAnswer = currentPlayer.handSize + 1;
         isValidOption = true;
 
-    }
+    }// for 1 do nothing
 }
 
 void StartNewGame(std::mt19937& gen)
 {
     std::cout << "starting new game : D" << std::endl;
 
-
+    
+    bool validInput = false;
     do {
         std::cout << "How many players are gonna play the game? (form 2 to 4) ";
-        std::cin >> numberOfPlayers;
-    } while (!(numberOfPlayers > 1 && numberOfPlayers <= 4));
+        if (!readIntFromConsole(numberOfPlayers))
+        {
+            ClearConsole();
+
+            std::cout << "Invalid input, please enter a number.\n\n";
+            continue;
+        }
+
+        if (numberOfPlayers < 2 || numberOfPlayers > 4)
+        {
+            ClearConsole();
+
+            std::cout << "Invalid choice, please choose again.\n\n";
+            continue;
+        }
+
+        validInput = true;
+
+    } while (!validInput);
 
     fillUnoDeck(drawDeck);
     shuffleDeck(drawDeck, MAX_DECK_SIZE, gen);
@@ -597,9 +679,15 @@ void StartNewGame(std::mt19937& gen)
 char ChooseColorForWild(int playerId)
 {
     int colorChoice = -1;
+    bool validInput = false;
 
-
+    ClearConsole();
     do {
+        std::cout << "player " << currentPlayerId << " please shoose color for wild card"<<std::endl;
+        displayCurrentPlayerHand(players[currentPlayerId]);
+        std::cout << std::endl;
+
+
         std::cout << "Player " << playerId << ", choose a color for the Wild card:" << std::endl;
         std::cout << "[0] ";
         PrintTextInColor("Red", RED_COLOR_CODE);
@@ -611,16 +699,28 @@ char ChooseColorForWild(int playerId)
         PrintTextInColor("Blue", BLUE_COLOR_CODE);
         std::cout << std::endl;
         std::cout << "Your choice: ";
-        std::cin >> colorChoice;
+
+        if (!readIntFromConsole(colorChoice))
+        {
+            ClearConsole();
+
+            std::cout << "Invalid input, please enter a number.\n\n";
+            continue;
+        }
+
         if (colorChoice < 0 || colorChoice > 3)
         {
             ClearConsole();
-            std::cout << "invalid choice, please choose again: \n \n";
-            
-        }
-    } while (colorChoice < 0 || colorChoice > 3);
 
-    return colors[colorChoice];  // Връща 'R', 'G', 'Y', или 'B'
+            std::cout << "Invalid choice, please choose again.\n\n";
+            continue;
+        }
+
+        validInput = true;
+
+    } while (!validInput);
+
+    return colors[colorChoice];  
 }
 
 
@@ -738,7 +838,7 @@ bool LoadGameFromFile()
             in >> players[i].hand[j].color;
             in >> players[i].hand[j].value;
 
-            // Ако е "-", направи го '\0'
+            // Ако е "-" -> '\0'
             if (players[i].hand[j].value[0] == '-' && players[i].hand[j].value[1] == '\0')
                 players[i].hand[j].value[0] = '\0';
 
@@ -1030,4 +1130,25 @@ bool equalsIgnoreCase(const char* a, const char* b)
         ++b;
     }
     return *a == *b;
+}
+bool readIntFromConsole(int& outValue) {
+    char buffer[100];
+    std::cin >> buffer;
+
+    // Check if all characters are digits
+    int i = 0;
+    if (buffer[0] == '\0') return false;
+    while (buffer[i] != '\0') {
+        if (buffer[i] < '0' || buffer[i] > '9') return false;
+        i++;
+    }
+
+    // Convert to int
+    outValue = 0;
+    i = 0;
+    while (buffer[i] != '\0') {
+        outValue = outValue * 10 + (buffer[i] - '0');
+        i++;
+    }
+    return true;
 }
