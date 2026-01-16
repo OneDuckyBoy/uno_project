@@ -19,11 +19,11 @@ const int YELLOW_COLOR_CODE = 93;
 const int BLUE_COLOR_CODE = 94;
 const int MAGENTA_COLOR_CODE = 95;
 const int MAX_DECK_SIZE = 108;
-const char colors[] = { 'R', 'G', 'Y', 'B', };
+const char COLORS[] = { 'R', 'G', 'Y', 'B', };
 const int COLORS_SIZE = 4;
-const int colorCodes[] = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
-const char wildColor = 'W';
-const int wildColorCode = MAGENTA_COLOR_CODE;
+const int COLOR_CODES[] = { RED_COLOR_CODE, GREEN_COLOR_CODE, YELLOW_COLOR_CODE, BLUE_COLOR_CODE };
+const char WILD_COLOR = 'W';
+const int WILD_COLOR_CODE = MAGENTA_COLOR_CODE;
 const char UNO_STR[] = "uno";
 const int SKIP_STRING_SIZE = 5;
 const int REVERSE_STRING_SIZE = 8;
@@ -50,40 +50,40 @@ int main();
 
 void GameBegining(int& userAnswer, struct savestate& unoSavestate, std::mt19937& gen);
 
-void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
+void FillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]);
 int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen);
 void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard);
-void playDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, savestate& uss);
-void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss);
-void moveToNextPlayer(savestate& uss);
+void PlayDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, savestate& uss);
+void SayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss);
+void MoveToNextPlayer(savestate& uss);
 void DrawCard(savestate& uss, int prevUserId, std::mt19937& gen);
 void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption);
 void StartNewGame(savestate& unoSavestate, std::mt19937& gen);
 void SaveGameInFile(savestate& uss);
-void displayCurrentPlayerHand(player& currentPlayer);
+void DisplayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(player players[MAX_PLAYERS], int numberOfPlayers, card drawDeck[MAX_DECK_SIZE], int currentDrawDeckId);
-void shuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
+void ShuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
 void ClearConsole();
 void ResetConsoleColor();
 void SetConsoleColor(int textColor);
 void PrintTextInColor(const char text[], int color);
-void colorInCard(struct card currentCard);
-void colorInTopDiscardCard(savestate& uss);
-bool checkIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, struct card playerCard);
+void ColorInCard(struct card currentCard);
+void ColorInTopDiscardCard(savestate& uss);
+bool CheckIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, struct card playerCard);
 void BuildCardText(card& c);
 bool LoadGameFromFile(savestate& uss);
 char ChooseColorForWild(savestate& uss);
-void playCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate& uss);
+void PlayCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate& uss);
 void Draw4CardAction(std::mt19937& gen, savestate& uss);
 void Draw2CardAction(std::mt19937& gen, savestate& uss);
 void ReverseCardAction(savestate& uss);
 void SkipCardAction(savestate& uss);
-void checkIfPlayerIsWinner(player& currentPlayer, int currentPlayerId);
+void CheckIfPlayerIsWinner(player& currentPlayer, int currentPlayerId);
 void ReshuffleDiscardPile(savestate& uss, std::mt19937& gen);
-bool charEquals(const char a[], const char b[], int size);
-char toLower(char c);
-bool equalsIgnoreCase(const char* a, const char* b);
-bool readIntFromConsole(int& outValue);
+bool CharEquals(const char a[], const char b[], int size);
+char ToLower(char c);
+bool EqualsIgnoreCase(const char* a, const char* b);
+bool ReadIntFromConsole(int& outValue);
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen, savestate& uss);
 //struct card discardDeck[MAX_DECK_SIZE];
@@ -200,12 +200,12 @@ void StartNewGame(savestate& uss, std::mt19937& gen)
         4
     );
 
-    fillUnoDeck(uss.drawDeck);
-    shuffleDeck(uss.drawDeck, MAX_DECK_SIZE, gen);
+    FillUnoDeck(uss.drawDeck);
+    ShuffleDeck(uss.drawDeck, MAX_DECK_SIZE, gen);
 
     FillPlayersHands(uss.players, uss.numberOfPlayers, uss.drawDeck, uss.currentDrawDeckId);
 
-    if (uss.drawDeck[uss.currentDrawDeckId].color == wildColor)
+    if (uss.drawDeck[uss.currentDrawDeckId].color == WILD_COLOR)
     {
         std::cout << "WIIIILD!!!" << std::endl;
 
@@ -307,19 +307,19 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
         // Draw card
         DrawCard(uss,uss.currentPlayerId, gen);
         card drawnCard = uss.players[uss.currentPlayerId].hand[uss.players[uss.currentPlayerId].handSize - 1];
-        bool canPlayDrawnCard = checkIfPlayerCanPlayCard(uss.activeWildColor, uss.discardDeck[uss.topDiscardDeckId], drawnCard);
+        bool canPlayDrawnCard = CheckIfPlayerCanPlayCard(uss.activeWildColor, uss.discardDeck[uss.topDiscardDeckId], drawnCard);
         if (canPlayDrawnCard)
         {
-            playDrawnCard(drawnCard, userAnswer, gen, uss);
+            PlayDrawnCard(drawnCard, userAnswer, gen, uss);
 
 
         }
         else
         {
             std::cout << "can't play ";
-            colorInCard(drawnCard);
+            ColorInCard(drawnCard);
             std::cout << " on top card ";
-            colorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
+            ColorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
             std::cout << std::endl;
 
         }
@@ -327,7 +327,7 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
         std::cout << "Press Enter to continue...";
         std::cin.ignore();
         std::cin.get();
-        moveToNextPlayer(uss);
+        MoveToNextPlayer(uss);
     }
     else if (userAnswer == uss.players[uss.currentPlayerId].handSize + 1)
     {
@@ -339,8 +339,8 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
     else
     {
         int currPlayerIdBeforePlay = uss.currentPlayerId;
-        playCard(userAnswer, uss.players[uss.currentPlayerId], gen, uss);
-        sayUnoAction(currPlayerIdBeforePlay, gen, uss);
+        PlayCard(userAnswer, uss.players[uss.currentPlayerId], gen, uss);
+        SayUnoAction(currPlayerIdBeforePlay, gen, uss);
     }
     return 0;
 }
@@ -356,16 +356,16 @@ void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard
 
             std::cout << "Current player: " << uss.currentPlayerId << std::endl;
             std::cout << "Current card: ";
-            colorInTopDiscardCard(uss);
+            ColorInTopDiscardCard(uss);
             std::cout << std::endl << "Your hand: " << std::endl;
 
-            displayCurrentPlayerHand(uss.players[uss.currentPlayerId]);
+            DisplayCurrentPlayerHand(uss.players[uss.currentPlayerId]);
             std::cout << "[" << uss.players[uss.currentPlayerId].handSize << "] Draw card" << std::endl;
             std::cout << "[" << uss.players[uss.currentPlayerId].handSize + 1 << "] Save game and exit" << std::endl;
             std::cout << "What do you want to do?" << std::endl;
 
 
-            if (!readIntFromConsole(userAnswer))
+            if (!ReadIntFromConsole(userAnswer))
             {
                 ClearConsole();
 
@@ -398,7 +398,7 @@ void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard
 
         else {
             struct card playerCard = uss.players[uss.currentPlayerId].hand[userAnswer];
-            isValidOption = checkIfPlayerCanPlayCard(uss.activeWildColor, currentCard, playerCard);
+            isValidOption = CheckIfPlayerCanPlayCard(uss.activeWildColor, currentCard, playerCard);
         }
 
         if (!isValidOption && userAnswer < uss.players[uss.currentPlayerId].handSize)
@@ -412,7 +412,7 @@ void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard
     } while (!isValidOption);
 }
 
-bool readIntFromConsole(int& outValue) {
+bool ReadIntFromConsole(int& outValue) {
     char buffer[MAX_CHAR_ARRAY_SIZE];
     std::cin >> buffer;
 
@@ -436,53 +436,53 @@ bool readIntFromConsole(int& outValue) {
 
 
 
-void colorInTopDiscardCard(savestate& uss) {
+void ColorInTopDiscardCard(savestate& uss) {
     struct card currentCard = uss.discardDeck[uss.topDiscardDeckId];
     char displayColor = currentCard.color;
 
     // Ако топ картата е Wild и има избран цвят, покажи го
-    if (currentCard.color == wildColor && uss.activeWildColor != '\0') {
+    if (currentCard.color == WILD_COLOR && uss.activeWildColor != '\0') {
         displayColor = uss.activeWildColor;
     }
 
     for (int i = 0; i < COLORS_SIZE; i++)
     {
-        if (displayColor == colors[i])
+        if (displayColor == COLORS[i])
         {
-            PrintTextInColor(currentCard.text, colorCodes[i]);
+            PrintTextInColor(currentCard.text, COLOR_CODES[i]);
             return;
         }
     }
-    if (displayColor == wildColor)
+    if (displayColor == WILD_COLOR)
     {
         PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
     }
 }
 
-void displayCurrentPlayerHand(player& currentPlayer)
+void DisplayCurrentPlayerHand(player& currentPlayer)
 {
     for (int i = 0; i < currentPlayer.handSize; i++)
     {
         std::cout << "[" << i << "] ";
-        colorInCard(currentPlayer.hand[i]);
+        ColorInCard(currentPlayer.hand[i]);
         std::cout << " ";
     }
 }
 
-bool checkIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, struct card playerCard) {
+bool CheckIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, struct card playerCard) {
 
     if (playerCard.color == activeWildColor)
     {
         return true;
     }
-    if (playerCard.color == wildColor)
+    if (playerCard.color == WILD_COLOR)
     {
         return true;
     }
 
     // Ако текущата карта е Wild с избран цвят, използвай активния цвят
     char effectiveColor = currentCard.color;
-    if (currentCard.color == wildColor && activeWildColor != '\0') {
+    if (currentCard.color == WILD_COLOR && activeWildColor != '\0') {
         effectiveColor = activeWildColor;
     }
 
@@ -491,7 +491,7 @@ bool checkIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, str
         return true;
     }
 
-    if (charEquals(currentCard.value, playerCard.value, 8))
+    if (CharEquals(currentCard.value, playerCard.value, 8))
     {
         return true;
     }
@@ -523,7 +523,7 @@ void ReshuffleDiscardPile(savestate& uss, std::mt19937& gen)
         uss.drawDeck[uss.currentDrawDeckId + i] = uss.discardDeck[i];
     }
 
-    shuffleDeck(uss.drawDeck + uss.currentDrawDeckId, cardsToShuffle, gen);
+    ShuffleDeck(uss.drawDeck + uss.currentDrawDeckId, cardsToShuffle, gen);
 
     uss.discardDeck[0] = topCard;
     uss.topDiscardDeckId = 0;
@@ -531,7 +531,7 @@ void ReshuffleDiscardPile(savestate& uss, std::mt19937& gen)
     std::cout << "Reshuffled " << cardsToShuffle << " cards back into draw deck!\n\n";
 }
 
-void playCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate& uss)
+void PlayCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate& uss)
 {
     // 1. ВЗЕМИ КАРТАТА
     struct card playedCard = currentPlayer.hand[cardIndex];
@@ -548,7 +548,7 @@ void playCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate
     currentPlayer.handSize--;
 
     // 4. АКО Е WILD, ИЗБЕРИ ЦВЯТ
-    if (playedCard.color == wildColor)
+    if (playedCard.color == WILD_COLOR)
     {
         std::cout << "You played a Wild card!\n";
         uss.activeWildColor = ChooseColorForWild(uss);
@@ -559,40 +559,40 @@ void playCard(int cardIndex, player& currentPlayer, std::mt19937& gen, savestate
     }
 
     // 5. ПРОВЕРИ ЗА ПОБЕДИТЕЛ
-    checkIfPlayerIsWinner(currentPlayer, uss.currentPlayerId);
+    CheckIfPlayerIsWinner(currentPlayer, uss.currentPlayerId);
     
 
     // 6. ОБРАБОТИ СПЕЦИАЛНИ КАРТИ
-    if (charEquals(playedCard.value, "Skip", SKIP_STRING_SIZE))
+    if (CharEquals(playedCard.value, "Skip", SKIP_STRING_SIZE))
     {
         SkipCardAction(uss);
         return;
     }
-    else if (charEquals(playedCard.value, "Reverse", REVERSE_STRING_SIZE))
+    else if (CharEquals(playedCard.value, "Reverse", REVERSE_STRING_SIZE))
     {
         ReverseCardAction(uss);
 
         return;
 
     }
-    else if (charEquals(playedCard.value, "+2", PLUS_2_STRING_SIZE))
+    else if (CharEquals(playedCard.value, "+2", PLUS_2_STRING_SIZE))
     {
         Draw2CardAction(gen, uss);
         return;
     }
-    else if (charEquals(playedCard.value, "+4", PLUS_4_STRING_SIZE))
+    else if (CharEquals(playedCard.value, "+4", PLUS_4_STRING_SIZE))
     {
         Draw4CardAction(gen, uss);
         return;
     }
     // 7. ОБИКНОВЕНА КАРТА - ПРЕМИНИ КЪМ СЛЕДВАЩ ИГРАЧ
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
 }
 
 void Draw4CardAction(std::mt19937& gen, savestate& uss)
 {
     std::cout << "\n>>> WILD +4! <<<\n";
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
     int nextPlayerId = uss.currentPlayerId;// = (uss.currentPlayerId + uss.playerOrder + uss.numberOfPlayers) % uss.numberOfPlayers;
     std::cout << "Player " << nextPlayerId << " must draw 4 cards!\n";
 
@@ -601,14 +601,14 @@ void Draw4CardAction(std::mt19937& gen, savestate& uss)
     std::cout << "Player " << nextPlayerId << " drew " << cardsDrawn << " card(s) and skips their turn!\n\n";
 
     // Прескочи следващия играч
-    moveToNextPlayer(uss);
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
 }
 
 void Draw2CardAction(std::mt19937& gen, savestate& uss)
 {
     std::cout << "\n>>> DRAW +2! <<<\n";
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
     int nextPlayerId = uss.currentPlayerId;
     std::cout << "Player " << nextPlayerId << " must draw 2 cards!\n";
 
@@ -617,8 +617,8 @@ void Draw2CardAction(std::mt19937& gen, savestate& uss)
     std::cout << "Player " << nextPlayerId << " drew " << cardsDrawn << " card(s) and skips their turn!\n\n";
 
     // Прескочи следващия играч
-    moveToNextPlayer(uss);
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
 }
 
 void ReverseCardAction(savestate& uss)
@@ -631,13 +631,13 @@ void ReverseCardAction(savestate& uss)
     if (uss.numberOfPlayers == 2)
     {
         std::cout << ">>> (In 2-player game, Reverse acts as Skip) <<<\n\n";
-        moveToNextPlayer(uss);
-        moveToNextPlayer(uss);
+        MoveToNextPlayer(uss);
+        MoveToNextPlayer(uss);
     }
     else
     {
         //2+ players
-        moveToNextPlayer(uss);
+        MoveToNextPlayer(uss);
 
     }
 }
@@ -645,11 +645,11 @@ void ReverseCardAction(savestate& uss)
 void SkipCardAction(savestate& uss)
 {
     std::cout << "\n>>> SKIP! Player " << ((uss.currentPlayerId + uss.playerOrder + uss.numberOfPlayers) % uss.numberOfPlayers) << " is skipped! <<<\n\n";
-    moveToNextPlayer(uss);
-    moveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
+    MoveToNextPlayer(uss);
 }
 
-void checkIfPlayerIsWinner(player& currentPlayer, int currentPlayerId)
+void CheckIfPlayerIsWinner(player& currentPlayer, int currentPlayerId)
 {
     if (currentPlayer.handSize == 0)
     {
@@ -668,22 +668,22 @@ void checkIfPlayerIsWinner(player& currentPlayer, int currentPlayerId)
 
 
 
-void playDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, savestate& uss)
+void PlayDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, savestate& uss)
 {
     std::cout << "can play ";
-    colorInCard(drawnCard);
+    ColorInCard(drawnCard);
     std::cout << " on top card ";
-    colorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
+    ColorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
     std::cout << std::endl;
     std::cout << "Do you want to play ";
-    colorInCard(drawnCard);
+    ColorInCard(drawnCard);
     std::cout << "?" << std::endl;
 
 
     std::cout << "[1] play card   [2/anyting else] don't play card" << std::endl;
 
 
-    if (!readIntFromConsole(userAnswer))
+    if (!ReadIntFromConsole(userAnswer))
     {
 
         std::cout << "Invalid input - keeping the card.\n";
@@ -691,7 +691,7 @@ void playDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, sa
     }
     if (userAnswer == 1)
     {
-        playCard(uss.players[uss.currentPlayerId].handSize - 1, uss.players[uss.currentPlayerId], gen,uss);
+        PlayCard(uss.players[uss.currentPlayerId].handSize - 1, uss.players[uss.currentPlayerId], gen,uss);
     }
     else
     {
@@ -700,7 +700,7 @@ void playDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, sa
     }
 }
 
-void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
+void SayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
 {
     char unoInput[MAX_CHAR_ARRAY_SIZE];
     std::cout << "enter Uno, or something else to continue(entering Uno means you are saying it)" << std::endl;
@@ -708,7 +708,7 @@ void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
     std::cin.ignore();
     std::cin.getline(unoInput, MAX_CHAR_ARRAY_SIZE);
 
-    if (equalsIgnoreCase(unoInput, UNO_STR))
+    if (EqualsIgnoreCase(unoInput, UNO_STR))
     {
         std::cout << "You Said Uno!" << std::endl;
 
@@ -717,7 +717,7 @@ void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
 
     if (uss.players[currPlayerIdBeforePlay].handSize == 1)
     {
-        if (equalsIgnoreCase(unoInput, UNO_STR))
+        if (EqualsIgnoreCase(unoInput, UNO_STR))
         {
             std::cout << "You Said Uno Correctly!\nNo need to draw cards as penalty\n";
         }
@@ -735,7 +735,7 @@ void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
     }
     else
     {
-        if (equalsIgnoreCase(unoInput, UNO_STR))
+        if (EqualsIgnoreCase(unoInput, UNO_STR))
         {
             std::cout << "You Said Uno incorrectly!\nDraw 1 card as penalty.\n";
             std::cout << "current player: " << uss.currentPlayerId << "\ncurrPlayerIdBeforePlay: " << currPlayerIdBeforePlay << "\n";
@@ -754,7 +754,7 @@ void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
     }*/
 
     std::cout << unoInput << std::endl;
-    if (equalsIgnoreCase(unoInput, UNO_STR)) {
+    if (EqualsIgnoreCase(unoInput, UNO_STR)) {
 
         std::cout << "Press Enter to continue...";
         //std::cin.ignore();
@@ -762,7 +762,7 @@ void sayUnoAction(int currPlayerIdBeforePlay, std::mt19937& gen, savestate& uss)
     }
 }
 
-void moveToNextPlayer(savestate& uss)
+void MoveToNextPlayer(savestate& uss)
 {
     uss.currentPlayerId = (uss.currentPlayerId + uss.playerOrder + uss.numberOfPlayers) % uss.numberOfPlayers;
 }
@@ -781,7 +781,7 @@ void DrawCard(savestate& uss, int prevUserId, std::mt19937& gen)
         uss.players[currentPlayerId].hand[uss.players[currentPlayerId].handSize] = uss.drawDeck[uss.currentDrawDeckId++];
         uss.players[currentPlayerId].handSize++;
         std::cout << "You drew: ";
-        colorInCard(uss.players[currentPlayerId].hand[uss.players[currentPlayerId].handSize - 1]);
+        ColorInCard(uss.players[currentPlayerId].hand[uss.players[currentPlayerId].handSize - 1]);
         std::cout << "\n\n";
     
 }
@@ -796,7 +796,7 @@ void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOp
     do {
         std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
         << "[0] Save game and exit [1] Continue current game: " << std::endl;
-        if (!readIntFromConsole(userAnswer))
+        if (!ReadIntFromConsole(userAnswer))
         {
             ClearConsole();
 
@@ -837,7 +837,7 @@ char ChooseColorForWild(savestate& uss)
     ClearConsole();
     do {
         std::cout << "player " << uss.currentPlayerId << " please choose color for wild card"<<std::endl;
-        displayCurrentPlayerHand(uss.players[uss.currentPlayerId]);
+        DisplayCurrentPlayerHand(uss.players[uss.currentPlayerId]);
         std::cout << std::endl;
 
 
@@ -853,7 +853,7 @@ char ChooseColorForWild(savestate& uss)
         std::cout << std::endl;
         std::cout << "Your choice: ";
 
-        if (!readIntFromConsole(colorChoice))
+        if (!ReadIntFromConsole(colorChoice))
         {
             ClearConsole();
 
@@ -873,7 +873,7 @@ char ChooseColorForWild(savestate& uss)
 
     } while (!validInput);
 
-    return colors[colorChoice];  
+    return COLORS[colorChoice];  
 }
 
 
@@ -962,18 +962,18 @@ void SaveGameInFile(savestate& uss)
 
 
 
-void colorInCard(struct card currentCard) {
+void ColorInCard(struct card currentCard) {
     char color = currentCard.color;
 
     for (int i = 0; i < COLORS_SIZE; i++)
     {
-        if (color == colors[i])
+        if (color == COLORS[i])
         {
-            PrintTextInColor(currentCard.text, colorCodes[i]);
+            PrintTextInColor(currentCard.text, COLOR_CODES[i]);
             return;
         }
     }
-    if (color == wildColor)
+    if (color == WILD_COLOR)
     {
         PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
     }
@@ -996,7 +996,7 @@ void FillPlayersHands(player players[MAX_PLAYERS], int numberOfPlayers, card dra
 }
 
 
-void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
+void FillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
     int cardIndex = 0;
     struct card currentCard;
     char cardValue[10] = {};
@@ -1005,11 +1005,11 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
         for (int numberValue = ZERO_NUMBER_CARD; numberValue <= LAST_NUMBER_CARD; numberValue++)
         {
             //cardValue = colors[colorIndex] + " " + (numberValue);
-            currentCard.color = colors[colorIndex];
+            currentCard.color = COLORS[colorIndex];
             currentCard.value[0] = (numberValue + '0');
             currentCard.value[1] = '\0';
 
-            currentCard.text[0] = colors[colorIndex];
+            currentCard.text[0] = COLORS[colorIndex];
             currentCard.text[1] = ' ';
             currentCard.text[2] = (numberValue + '0');
             currentCard.text[3] = '\0';
@@ -1023,11 +1023,11 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
             //std::cout << cardValue << "    ";
         }
 
-        currentCard.color = colors[colorIndex];
+        currentCard.color = COLORS[colorIndex];
         currentCard.value[0] = '+';
         currentCard.value[1] = '2';
         currentCard.value[2] = '\0';
-        currentCard.text[0] = colors[colorIndex];
+        currentCard.text[0] = COLORS[colorIndex];
         currentCard.text[1] = ' ';
         currentCard.text[2] = '+';
         currentCard.text[3] = '2';
@@ -1035,13 +1035,13 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
         drawDeck[cardIndex++] = currentCard;
         drawDeck[cardIndex++] = currentCard;
 
-        currentCard.color = colors[colorIndex];
+        currentCard.color = COLORS[colorIndex];
         currentCard.value[0] = 'S';
         currentCard.value[1] = 'k';
         currentCard.value[2] = 'i';
         currentCard.value[3] = 'p';
         currentCard.value[4] = '\0';
-        currentCard.text[0] = colors[colorIndex];
+        currentCard.text[0] = COLORS[colorIndex];
         currentCard.text[1] = ' ';
         currentCard.text[2] = 'S';
         currentCard.text[3] = 'k';
@@ -1052,7 +1052,7 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
         drawDeck[cardIndex++] = currentCard;
         drawDeck[cardIndex++] = currentCard;
 
-        currentCard.color = colors[colorIndex];
+        currentCard.color = COLORS[colorIndex];
         currentCard.value[0] = 'R';
         currentCard.value[1] = 'e';
         currentCard.value[2] = 'v';
@@ -1061,7 +1061,7 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
         currentCard.value[5] = 's';
         currentCard.value[6] = 'e';
         currentCard.value[7] = '\0';
-        currentCard.text[0] = colors[colorIndex];
+        currentCard.text[0] = COLORS[colorIndex];
         currentCard.text[1] = ' ';
         currentCard.text[2] = 'R';
         currentCard.text[3] = 'e';
@@ -1078,20 +1078,20 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
 
     }
 
-    currentCard.color = wildColor;
+    currentCard.color = WILD_COLOR;
     currentCard.value[0] = '\0';
-    currentCard.text[0] = wildColor;
+    currentCard.text[0] = WILD_COLOR;
     currentCard.text[1] = '\0';
     drawDeck[cardIndex++] = currentCard;
     drawDeck[cardIndex++] = currentCard;
     drawDeck[cardIndex++] = currentCard;
     drawDeck[cardIndex++] = currentCard;
 
-    currentCard.color = wildColor;
+    currentCard.color = WILD_COLOR;
     currentCard.value[0] = '+';
     currentCard.value[1] = '4';
     currentCard.value[2] = '\0';
-    currentCard.text[0] = wildColor;
+    currentCard.text[0] = WILD_COLOR;
     currentCard.text[1] = ' ';
     currentCard.text[2] = '+';
     currentCard.text[3] = '4';
@@ -1103,7 +1103,7 @@ void fillUnoDeck(struct card drawDeck[MAX_DECK_SIZE]) {
 
 }
 
-void shuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize,std::mt19937& gen) {
+void ShuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize,std::mt19937& gen) {
     std::shuffle(drawDeck, drawDeck+ arrSize, gen);
 }
 
@@ -1123,7 +1123,7 @@ void PrintTextInColor(const char text[], int color) {
 
 }
 
-bool charEquals(const char a[], const char b[], int size) {
+bool CharEquals(const char a[], const char b[], int size) {
     for (int i = 0; i < size; i++) {
         if (a[i] != b[i]) {
             return false; 
@@ -1135,18 +1135,18 @@ bool charEquals(const char a[], const char b[], int size) {
     return true;
 }
 
-char toLower(char c)
+char ToLower(char c)
 {
     if (c >= 'A' && c <= 'Z')
         return c + ('a' - 'A');
     return c;
 }
 
-bool equalsIgnoreCase(const char* a, const char* b)
+bool EqualsIgnoreCase(const char* a, const char* b)
 {
     while (*a && *b)
     {
-        if (toLower(*a) != toLower(*b))
+        if (ToLower(*a) != ToLower(*b))
             return false;
         ++a;
         ++b;
@@ -1165,7 +1165,7 @@ int ReadValidInteger(const char* prompt, int minValue, int maxValue)
     do {
         std::cout << prompt;
 
-        if (!readIntFromConsole(value))
+        if (!ReadIntFromConsole(value))
         {
             std::cout << "Invalid input! Please enter a number between "
                 << minValue << " and " << maxValue << ".\n";
