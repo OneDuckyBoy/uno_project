@@ -92,7 +92,7 @@ bool ReadIntFromConsole(int& outValue);
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen, savestate& uss);
 void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZE]);
-int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE]);
+int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE], int currentSaveFileId);
 
 //struct card discardDeck[MAX_DECK_SIZE];
 //struct card drawDeck[MAX_DECK_SIZE];
@@ -114,6 +114,7 @@ const struct savestate {
     int numberOfPlayers = 0;
     int currentPlayerId = 0;
     int playerOrder = 1;
+    int currentSaveFileId = -1;
 };
 
 struct SaveFileInfo
@@ -124,10 +125,12 @@ struct SaveFileInfo
     int currentPlayer;
     card topCard;
     char activeColor;
+    bool isCurrentSaveFile = false;
+
 };
 
 SaveFileInfo GetSaveFileInfo(const char* filename);
-void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info);
+void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info, bool IsCurrentFile);
 bool ReadValidIntegerWhileCycle(int minValue, int maxValue, int& value);
 void test();
 int main()
@@ -174,7 +177,7 @@ int main()
 }
 
 
-void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info)
+void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info, bool isCurrentSaveFile = false)
 {
     std::cout << "[" << slotNumber << "] Slot " << slotNumber << ": ";
 
@@ -187,7 +190,10 @@ void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info)
     std::cout << info.numPlayers << " players, Player " << info.currentPlayer << ", Top: ";
 
     ColorInCard(info.topCard, info.activeColor);
-    
+    if (isCurrentSaveFile)
+    {
+        std::cout << " (current save file)";
+    }
     std::cout << "\n";
 }
  SaveFileInfo GetSaveFileInfo(const char* filename)
@@ -354,8 +360,13 @@ void StartNewGame(savestate& uss, std::mt19937& gen)
 bool LoadGameFromFile(savestate& uss)
 {
     char newGameText[MAX_CHAR_ARRAY_SIZE] = "start new game instead";
-
-    int gameFileId = chooseSaveFile(newGameText);
+    int gameFileId = -1;
+    
+    do
+    {
+        gameFileId = chooseSaveFile(newGameText, uss.currentSaveFileId);
+    } while (gameFileId<0||gameFileId>numberOfSaveFiles);
+    uss.currentSaveFileId = gameFileId;
     if (gameFileId == numberOfSaveFiles)
     {
         return false;
@@ -1106,7 +1117,7 @@ void ChooseSaveFIleForSaveGame(savestate uss)
     std::cout << "Choose a save file: "<<std::endl;
     char textForCancel[MAX_CHAR_ARRAY_SIZE] = "exit game without saving";
 
-    int choice= chooseSaveFile(textForCancel);
+    int choice = chooseSaveFile(textForCancel, uss.currentSaveFileId);
     if (choice==numberOfSaveFiles)
     {
         return;
@@ -1117,11 +1128,15 @@ void ChooseSaveFIleForSaveGame(savestate uss)
     SaveGameInFile(uss, filename);
 }
 
-int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE]) {
+int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE], int currentSaveFileId= -1) {
     for (int i = 0; i < numberOfSaveFiles; i++)
     {
-        SaveFileInfo info = GetSaveFileInfo(SAVEFILE_NAMES[i]);
-        DisplaySaveSlot(i, info);
+        SaveFileInfo info = GetSaveFileInfo(SAVEFILE_NAMES[i]);bool isCurrentSaveFile = false;
+        if (currentSaveFileId==i)
+        {
+            isCurrentSaveFile = true;
+        }
+        DisplaySaveSlot(i, info, isCurrentSaveFile);
 
     }
     std::cout << "[" << numberOfSaveFiles << "] " << textForCancel << std::endl;
@@ -1130,7 +1145,7 @@ int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE]) {
     bool isValid = false;
     do
     {
-        isValid = ReadValidIntegerWhileCycle(0, numberOfSaveFiles + 1, choice);
+        isValid = ReadValidIntegerWhileCycle(0, numberOfSaveFiles , choice);
     } while (!isValid);
     return choice;
 }
@@ -1348,6 +1363,7 @@ void test() {
     } while (!validInput);
 }
 bool ReadValidIntegerWhileCycle(int minValue, int maxValue, int &value){
+
     if (!ReadIntFromConsole(value))
     {
         std::cout << "Invalid input! Please enter a number between "
