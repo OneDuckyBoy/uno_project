@@ -33,6 +33,9 @@ const int PLUS_2_STRING_SIZE = 3;
 const int PLUS_4_STRING_SIZE = 3;
 const int STARTING_NUMBER_OF_CARDS = 7;
 
+const int numberOfSaveFiles = 3;
+const char* SAVEFILE_NAMES[] = { FILENAME_1, FILENAME_2, FILENAME_3 };
+
 struct card
 {
     char color;
@@ -61,8 +64,8 @@ void MoveToNextPlayer(savestate& uss);
 void DrawCard(savestate& uss, int prevUserId, std::mt19937& gen);
 void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption);
 void StartNewGame(savestate& unoSavestate, std::mt19937& gen);
-void SaveGameInFile(savestate& uss);
-void ChooseSaveFIleForSaveGame(char  filename[1000]);
+void SaveGameInFile(savestate& uss, char filename[MAX_CHAR_ARRAY_SIZE]);
+void ChooseSaveFIleForSaveGame(savestate uss);
 void DisplayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(player players[MAX_PLAYERS], int numberOfPlayers, card drawDeck[MAX_DECK_SIZE], int currentDrawDeckId);
 void ShuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
@@ -89,7 +92,7 @@ bool ReadIntFromConsole(int& outValue);
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen, savestate& uss);
 void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZE]);
-
+int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE]);
 
 //struct card discardDeck[MAX_DECK_SIZE];
 //struct card drawDeck[MAX_DECK_SIZE];
@@ -125,8 +128,8 @@ struct SaveFileInfo
 
 SaveFileInfo GetSaveFileInfo(const char* filename);
 void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info);
-
-
+bool ReadValidIntegerWhileCycle(int minValue, int maxValue, int& value);
+void test();
 int main()
 {
 
@@ -134,9 +137,9 @@ int main()
     DisplaySaveSlot(0, fileInfo);*/
     
     savestate unoSavestate;
-
-
-    
+   /* char asd[100] = "asd";
+    ChooseSaveFIleForSaveGame(asd);*/
+    //test();
 
     //return 0;
     std::random_device rd;
@@ -350,7 +353,16 @@ void StartNewGame(savestate& uss, std::mt19937& gen)
 
 bool LoadGameFromFile(savestate& uss)
 {
-    std::ifstream in(FILENAME_1);
+    char newGameText[MAX_CHAR_ARRAY_SIZE] = "start new game instead";
+
+    int gameFileId = chooseSaveFile(newGameText);
+    if (gameFileId == numberOfSaveFiles)
+    {
+        return false;
+    }
+
+    
+    std::ifstream in(SAVEFILE_NAMES[gameFileId]);
     if (!in)
     {
         std::cout << "Save file not found.\n";
@@ -461,7 +473,8 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
     {
         // Save and exit
 
-        SaveGameInFile(uss);
+        //SaveGameInFile(uss, _placeholder_);
+        ChooseSaveFIleForSaveGame(uss);
         retFlag = true;
         return 0;
     }
@@ -902,13 +915,12 @@ void DrawCard(savestate& uss, int prevUserId, std::mt19937& gen)
 
 void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption)
 {
-    
-
-
-    bool validInput = false;
+    userAnswer= ReadValidInteger("Are you sure?\n[0] Save game and exit [1] Continue current game: ", 0-1, 1);
+    /*bool validInput = false;
     do {
-        std::cout << "Are you sure? if there is older save it will be overwritten." << std::endl
+        std::cout << "Are you sure?" << std::endl
         << "[0] Save game and exit [1] Continue current game: " << std::endl;
+       
         if (!ReadIntFromConsole(userAnswer))
         {
             ClearConsole();
@@ -928,7 +940,7 @@ void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOp
         validInput = true;
 
     } while (!validInput);
-
+*/
 
     if (userAnswer == 0)
     {
@@ -1022,11 +1034,11 @@ void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZ
     }
     dest[i] = '\0';
 }
-void SaveGameInFile(savestate& uss)
+void SaveGameInFile(savestate& uss, char filename[MAX_CHAR_ARRAY_SIZE])
 {
-    char filename[MAX_CHAR_ARRAY_SIZE];
+    /*char filename[MAX_CHAR_ARRAY_SIZE];
 
-    ChooseSaveFIleForSaveGame(filename);
+    ChooseSaveFIleForSaveGame(filename);*/
 
     std::ofstream out(filename, std::ios::trunc);
     if (!out)
@@ -1088,14 +1100,40 @@ void SaveGameInFile(savestate& uss)
     std::cout << "Game saved successfully.\n";
 }
 
-void ChooseSaveFIleForSaveGame(char  filename[1000])
+
+void ChooseSaveFIleForSaveGame(savestate uss)
 {
-    std::cout << "Choose a save file: ";
+    std::cout << "Choose a save file: "<<std::endl;
+    char textForCancel[MAX_CHAR_ARRAY_SIZE] = "exit game without saving";
 
-
-    MyStrCopy(FILENAME_1, filename);
+    int choice= chooseSaveFile(textForCancel);
+    if (choice==numberOfSaveFiles)
+    {
+        return;
+    }
+    
+    char filename[MAX_CHAR_ARRAY_SIZE] ;
+    MyStrCopy(SAVEFILE_NAMES[choice], filename);
+    SaveGameInFile(uss, filename);
 }
 
+int chooseSaveFile(char textForCancel[MAX_CHAR_ARRAY_SIZE]) {
+    for (int i = 0; i < numberOfSaveFiles; i++)
+    {
+        SaveFileInfo info = GetSaveFileInfo(SAVEFILE_NAMES[i]);
+        DisplaySaveSlot(i, info);
+
+    }
+    std::cout << "[" << numberOfSaveFiles << "] " << textForCancel << std::endl;
+
+    int choice = -1;
+    bool isValid = false;
+    do
+    {
+        isValid = ReadValidIntegerWhileCycle(0, numberOfSaveFiles + 1, choice);
+    } while (!isValid);
+    return choice;
+}
 
 
 void ColorInCard(struct card currentCard, char activeWildColor) {
@@ -1300,8 +1338,32 @@ bool EqualsIgnoreCase(const char* a, const char* b)
     return *a == *b;
 }
 
+void test() {
+    int value;
+    bool validInput = false;
+    do
+    {
+        std::cout << "test prompt"<<std::endl;
+        validInput = ReadValidIntegerWhileCycle(1,3 ,value);
+    } while (!validInput);
+}
+bool ReadValidIntegerWhileCycle(int minValue, int maxValue, int &value){
+    if (!ReadIntFromConsole(value))
+    {
+        std::cout << "Invalid input! Please enter a number between "
+            << minValue << " and " << maxValue << ".\n";
+        return false;
+    }
 
+    if (value < minValue || value > maxValue)
+    {
+        std::cout << "Invalid choice! Please enter a number between "
+            << minValue << " and " << maxValue << ".\n";
+        return false;
+    }
 
+    return true;
+}
 
 int ReadValidInteger(const char* prompt, int minValue, int maxValue)
 {
@@ -1311,21 +1373,7 @@ int ReadValidInteger(const char* prompt, int minValue, int maxValue)
     do {
         std::cout << prompt;
 
-        if (!ReadIntFromConsole(value))
-        {
-            std::cout << "Invalid input! Please enter a number between "
-                << minValue << " and " << maxValue << ".\n";
-            continue;
-        }
-
-        if (value < minValue || value > maxValue)
-        {
-            std::cout << "Invalid choice! Please enter a number between "
-                << minValue << " and " << maxValue << ".\n";
-            continue;
-        }
-
-        validInput = true;
+        validInput = ReadValidIntegerWhileCycle(minValue, maxValue, value);
 
     } while (!validInput);
 
