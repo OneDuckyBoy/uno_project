@@ -5,11 +5,13 @@
 #include <algorithm>
 #include <random>
 #include <fstream>
+const int MAX_CHAR_ARRAY_SIZE = 1000;
 
-const char FILENAME[] = "UnoSaveState.txt";
+const char FILENAME_1[MAX_CHAR_ARRAY_SIZE] = "UnoSaveState.txt";
+const char FILENAME_2[MAX_CHAR_ARRAY_SIZE] = "UnoSaveState2.txt";
+const char FILENAME_3[MAX_CHAR_ARRAY_SIZE] = "UnoSaveState3.txt";
 const int MAX_VALUE_LENGTH = 10;
 const int MAX_TEXT_LENGTH = 20;
-const int MAX_CHAR_ARRAY_SIZE = 1000;
 const int ZERO_NUMBER_CARD = 0;
 const int LAST_NUMBER_CARD = 9;
 const int MAX_PLAYERS = 4;
@@ -86,6 +88,7 @@ bool EqualsIgnoreCase(const char* a, const char* b);
 bool ReadIntFromConsole(int& outValue);
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen, savestate& uss);
+void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZE]);
 //struct card discardDeck[MAX_DECK_SIZE];
 //struct card drawDeck[MAX_DECK_SIZE];
 //struct player players[MAX_PLAYERS];
@@ -225,7 +228,7 @@ void StartNewGame(savestate& uss, std::mt19937& gen)
 
 bool LoadGameFromFile(savestate& uss)
 {
-    std::ifstream in(FILENAME);
+    std::ifstream in(FILENAME_1);
     if (!in)
     {
         std::cout << "Save file not found.\n";
@@ -898,9 +901,24 @@ void BuildCardText(card& c)
     c.text[2 + i] = '\0';
 }
 
+
+
+void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZE]) {
+    int i = 0;
+    while (src[i] != '\0')
+    {
+        dest[i] = src[i];
+        i++;
+    }
+    dest[i] = '\0';
+}
 void SaveGameInFile(savestate& uss)
 {
-    std::ofstream out(FILENAME, std::ios::trunc);
+
+    char filename[MAX_CHAR_ARRAY_SIZE];
+    MyStrCopy(FILENAME_1, filename);
+
+    std::ofstream out(filename, std::ios::trunc);
     if (!out)
     {
         std::cout << "Cannot open save file.\n";
