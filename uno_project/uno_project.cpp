@@ -60,7 +60,7 @@ struct player
     struct card hand[MAX_DECK_SIZE] = {};
     int handSize = STARTING_NUMBER_OF_CARDS;
 };
-const struct savestate {
+struct savestate {
     struct card discardDeck[MAX_DECK_SIZE];
     struct card drawDeck[MAX_DECK_SIZE];
     struct player players[MAX_PLAYERS];
