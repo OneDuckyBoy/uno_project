@@ -70,8 +70,7 @@ void ClearConsole();
 void ResetConsoleColor();
 void SetConsoleColor(int textColor);
 void PrintTextInColor(const char text[], int color);
-void ColorInCard(struct card currentCard);
-void ColorInTopDiscardCard(savestate& uss);
+void ColorInCard(struct card currentCard, char activeWildColor = '\0');
 bool CheckIfPlayerCanPlayCard(char activeWildColor, struct card currentCard, struct card playerCard);
 void BuildCardText(card& c);
 bool LoadGameFromFile(savestate& uss);
@@ -184,32 +183,8 @@ void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info)
 
     std::cout << info.numPlayers << " players, Player " << info.currentPlayer << ", Top: ";
 
-
-    if (info.topCard.color == WILD_COLOR && info.activeColor != '\0')
-    {
-        for (int i = 0; i < COLORS_SIZE; i++)
-        {
-            if (info.activeColor == COLORS[i])
-            {
-                PrintTextInColor(info.topCard.text, COLOR_CODES[i]);
-                return;
-            }
-        }
-
-
-
-        
-
-        if (info.topCard.value[0] != '\0')
-        {
-            std::cout << " " << info.topCard.value;
-        }
-    }
-    else
-    {
-        ColorInCard(info.topCard);
-    }
-
+    ColorInCard(info.topCard, info.activeColor);
+    
     std::cout << "\n";
 }
  SaveFileInfo GetSaveFileInfo(const char* filename)
@@ -469,7 +444,10 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
             std::cout << "can't play ";
             ColorInCard(drawnCard);
             std::cout << " on top card ";
-            ColorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
+            card topDiscardCard = uss.discardDeck[uss.topDiscardDeckId];
+
+            ColorInCard(topDiscardCard, uss.activeWildColor);
+            
             std::cout << std::endl;
 
         }
@@ -506,10 +484,11 @@ void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard
     do {
         do
         {
-
             std::cout << "Current player: " << uss.currentPlayerId << std::endl;
             std::cout << "Current card: ";
-            ColorInTopDiscardCard(uss);
+            card topDiscardCard = uss.discardDeck[uss.topDiscardDeckId];
+            ColorInCard(topDiscardCard, uss.activeWildColor);
+
             std::cout << std::endl << "Your hand: " << std::endl;
 
             DisplayCurrentPlayerHand(uss.players[uss.currentPlayerId]);
@@ -589,28 +568,7 @@ bool ReadIntFromConsole(int& outValue) {
 
 
 
-void ColorInTopDiscardCard(savestate& uss) {
-    struct card currentCard = uss.discardDeck[uss.topDiscardDeckId];
-    char displayColor = currentCard.color;
 
-    // Ако топ картата е Wild и има избран цвят, покажи го
-    if (currentCard.color == WILD_COLOR && uss.activeWildColor != '\0') {
-        displayColor = uss.activeWildColor;
-    }
-
-    for (int i = 0; i < COLORS_SIZE; i++)
-    {
-        if (displayColor == COLORS[i])
-        {
-            PrintTextInColor(currentCard.text, COLOR_CODES[i]);
-            return;
-        }
-    }
-    if (displayColor == WILD_COLOR)
-    {
-        PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
-    }
-}
 
 void DisplayCurrentPlayerHand(player& currentPlayer)
 {
@@ -826,7 +784,9 @@ void PlayDrawnCard(const card& drawnCard, int& userAnswer, std::mt19937& gen, sa
     std::cout << "can play ";
     ColorInCard(drawnCard);
     std::cout << " on top card ";
-    ColorInTopDiscardCard(uss);//(discardDeck[topDiscardDeckId]);
+    card topDiscardCard = uss.discardDeck[uss.topDiscardDeckId];
+    ColorInCard(topDiscardCard, uss.activeWildColor);
+    
     std::cout << std::endl;
     std::cout << "Do you want to play ";
     ColorInCard(drawnCard);
@@ -1138,7 +1098,7 @@ void ChooseSaveFIleForSaveGame(char  filename[1000])
 
 
 
-void ColorInCard(struct card currentCard) {
+void ColorInCard(struct card currentCard, char activeWildColor) {
     char color = currentCard.color;
 
     for (int i = 0; i < COLORS_SIZE; i++)
@@ -1149,9 +1109,19 @@ void ColorInCard(struct card currentCard) {
             return;
         }
     }
-    if (color == WILD_COLOR)
+    if (color == WILD_COLOR && activeWildColor == '\0')
     {
         PrintTextInColor(currentCard.text, MAGENTA_COLOR_CODE);
+    }
+    else {
+        for (int i = 0; i < COLORS_SIZE; i++)
+        {
+            if (activeWildColor == COLORS[i])
+            {
+                PrintTextInColor(currentCard.text, COLOR_CODES[i]);
+                return;
+            }
+        }
     }
 }
 
