@@ -62,6 +62,7 @@ void DrawCard(savestate& uss, int prevUserId, std::mt19937& gen);
 void SaveGameConsoleText(int& userAnswer, player& currentPlayer, bool& isValidOption);
 void StartNewGame(savestate& unoSavestate, std::mt19937& gen);
 void SaveGameInFile(savestate& uss);
+void ChooseSaveFIleForSaveGame(char  filename[1000]);
 void DisplayCurrentPlayerHand(player& currentPlayer);
 void FillPlayersHands(player players[MAX_PLAYERS], int numberOfPlayers, card drawDeck[MAX_DECK_SIZE], int currentDrawDeckId);
 void ShuffleDeck(struct card drawDeck[MAX_DECK_SIZE], int arrSize, std::mt19937& gen);
@@ -89,6 +90,8 @@ bool ReadIntFromConsole(int& outValue);
 int ReadValidInteger(const char* prompt, int minValue, int maxValue);
 int DrawMultipleCards(int playerId, int numCards, std::mt19937& gen, savestate& uss);
 void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZE]);
+
+
 //struct card discardDeck[MAX_DECK_SIZE];
 //struct card drawDeck[MAX_DECK_SIZE];
 //struct player players[MAX_PLAYERS];
@@ -110,9 +113,27 @@ const struct savestate {
     int currentPlayerId = 0;
     int playerOrder = 1;
 };
+
+struct SaveFileInfo
+{
+    bool exists;
+    bool isEmpty;
+    int numPlayers;
+    int currentPlayer;
+    card topCard;
+    char activeColor;
+};
+
+SaveFileInfo GetSaveFileInfo(const char* filename);
+void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info);
+
+
 int main()
 {
 
+    /*SaveFileInfo fileInfo = GetSaveFileInfo(FILENAME_1);
+    DisplaySaveSlot(0, fileInfo);*/
+    
     savestate unoSavestate;
 
 
@@ -149,6 +170,132 @@ int main()
         std::cin.get();
     }
 }
+
+
+void DisplaySaveSlot(int slotNumber, const SaveFileInfo& info)
+{
+    std::cout << "[" << slotNumber << "] Slot " << slotNumber << ": ";
+
+    if (!info.exists || info.isEmpty)
+    {
+        std::cout << "EMPTY\n";
+        return;
+    }
+
+    std::cout << info.numPlayers << " players, Player " << info.currentPlayer << ", Top: ";
+
+
+    if (info.topCard.color == WILD_COLOR && info.activeColor != '\0')
+    {
+        for (int i = 0; i < COLORS_SIZE; i++)
+        {
+            if (info.activeColor == COLORS[i])
+            {
+                PrintTextInColor(info.topCard.text, COLOR_CODES[i]);
+                return;
+            }
+        }
+
+
+
+        
+
+        if (info.topCard.value[0] != '\0')
+        {
+            std::cout << " " << info.topCard.value;
+        }
+    }
+    else
+    {
+        ColorInCard(info.topCard);
+    }
+
+    std::cout << "\n";
+}
+ SaveFileInfo GetSaveFileInfo(const char* filename)
+{
+    SaveFileInfo info;
+    info.exists = false;
+    info.isEmpty = true;
+    info.numPlayers = 0;
+    info.currentPlayer = 0;
+    info.activeColor = '\0';
+
+    std::ifstream in(filename);
+    if (!in)
+    {
+        return info;
+    }
+
+    info.exists = true;
+
+    in.seekg(0, std::ios::end);
+    if (in.tellg() == 0)
+    {
+        in.close();
+        return info;
+    }
+
+    info.isEmpty = false;
+    in.seekg(0, std::ios::beg);
+
+    in >> info.numPlayers;
+    in >> info.currentPlayer;
+
+    int playerOrder;
+    in >> playerOrder;
+
+    char tempColor;
+    in >> tempColor;
+    if (tempColor == '-')
+        info.activeColor = '\0';
+    else
+        info.activeColor = tempColor;
+
+    // Пропусни ръцете на играчите
+    for (int i = 0; i < info.numPlayers; i++)
+    {
+        int handSize;
+        in >> handSize;
+
+        for (int j = 0; j < handSize; j++)
+        {
+            char color, value[10];
+            in >> color >> value;
+        }
+    }
+
+    int drawDeckId;
+    in >> drawDeckId;
+
+    for (int i = drawDeckId; i < MAX_DECK_SIZE; i++)
+    {
+        char color, value[10];
+        in >> color >> value;
+    }
+
+    int topDiscardId;
+    in >> topDiscardId;
+
+    for (int i = 0; i < topDiscardId; i++)
+    {
+        char color, value[10];
+        in >> color >> value;
+    }
+
+    in >> info.topCard.color;
+    in >> info.topCard.value;
+
+    if (info.topCard.value[0] == '-' && info.topCard.value[1] == '\0')
+        info.topCard.value[0] = '\0';
+
+    BuildCardText(info.topCard);
+
+    in.close();
+    return info;
+}
+
+
 
 void GameBegining(int& userAnswer, savestate& unoSavestate, std::mt19937& gen)
 {
@@ -335,6 +482,7 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
     else if (userAnswer == uss.players[uss.currentPlayerId].handSize + 1)
     {
         // Save and exit
+
         SaveGameInFile(uss);
         retFlag = true;
         return 0;
@@ -347,6 +495,8 @@ int GameFlow(savestate& uss, int& userAnswer, bool& retFlag, std::mt19937& gen)
     }
     return 0;
 }
+
+
 
 void ChooseActionToPlay(savestate& uss, int& userAnswer, const card& currentCard)
 {
@@ -914,9 +1064,9 @@ void MyStrCopy(const char src[MAX_CHAR_ARRAY_SIZE], char dest[MAX_CHAR_ARRAY_SIZ
 }
 void SaveGameInFile(savestate& uss)
 {
-
     char filename[MAX_CHAR_ARRAY_SIZE];
-    MyStrCopy(FILENAME_1, filename);
+
+    ChooseSaveFIleForSaveGame(filename);
 
     std::ofstream out(filename, std::ios::trunc);
     if (!out)
@@ -976,6 +1126,14 @@ void SaveGameInFile(savestate& uss)
 
     out.close();
     std::cout << "Game saved successfully.\n";
+}
+
+void ChooseSaveFIleForSaveGame(char  filename[1000])
+{
+    std::cout << "Choose a save file: ";
+
+
+    MyStrCopy(FILENAME_1, filename);
 }
 
 
