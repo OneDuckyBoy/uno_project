@@ -1,4 +1,9 @@
 # uno_project
+линкове към изизскванията: 
+за проекта
+https://docs.google.com/document/d/1iaWMhfIaKd_Tq9C_L0kLRvwc442nyZJCZiZmHrvsoOw/edit?tab=t.0
+за предаването
+https://docs.google.com/document/d/1yCpn_00QmQigdwqthp-Y0ayEiWbuCC-nMrhBHr03oRs/edit?tab=t.0
 
 # UNO - Console Edition
 
